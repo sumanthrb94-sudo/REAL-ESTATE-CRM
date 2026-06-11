@@ -68,6 +68,21 @@ Open <http://localhost:3000> → redirects to the dashboard.
 
 ---
 
+## ▲ Deploying to Vercel
+
+The repo is Vercel-ready out of the box (`vercel.json` pins the Next.js framework preset and the `bom1` region; `.nvmrc` pins Node 20):
+
+1. Import the repo at <https://vercel.com/new> (or `npx vercel`).
+2. No environment variables are required for the demo — `DATA_DRIVER` defaults to `memory`.
+3. Deploy. Done.
+
+**Notes for the in-memory demo on serverless:**
+- Each serverless instance seeds its own deterministic dataset, so reads are always consistent, but writes (new leads, bookings, …) live only for the lifetime of that instance. That's expected for the demo tier.
+- For durable data, wire up Postgres (below) — Vercel Postgres / Neon / Supabase all work — and set `DATA_DRIVER=prisma` + `DATABASE_URL` in the Vercel project's environment variables.
+- Type errors fail the build; ESLint is reported via `npm run lint` but doesn't block deploys.
+
+---
+
 ## 🗄️ Wiring up a real database (later)
 
 1. Set `DATABASE_URL` in `.env.local` to your Postgres instance.
