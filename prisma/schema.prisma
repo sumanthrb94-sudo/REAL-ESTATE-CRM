@@ -1,0 +1,390 @@
+// EstateCRM — Prisma schema
+// Full data model for a Sell.Do-class real estate sales CRM.
+// NOTE: The application ships with an in-memory seeded data layer (DATA_DRIVER=memory)
+// so it runs with zero database setup. When you are ready, set DATA_DRIVER=prisma,
+// point DATABASE_URL at a Postgres instance, and run `npm run db:migrate`.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Identity & Access ──────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  SALES_HEAD
+  SALES_MANAGER
+  SALES_AGENT
+  MARKETING
+  CHANNEL_PARTNER
+  VIEWER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  role         Role     @default(SALES_AGENT)
+  avatarUrl    String?
+  active       Boolean  @default(true)
+  teamId       String?
+  team         Team?    @relation(fields: [teamId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedLeads        Lead[]         @relation("LeadOwner")
+  activities        Activity[]
+  siteVisits        SiteVisit[]    @relation("SiteVisitAgent")
+  bookings          Booking[]      @relation("BookingAgent")
+  assignmentRules   AssignmentRule[]
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  region    String?
+  managerId String?
+  members   User[]
+  createdAt DateTime @default(now())
+}
+
+// ─── Leads & Sales ──────────────────────────────────────────────────────────
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  SITE_VISIT_SCHEDULED
+  SITE_VISIT_DONE
+  NEGOTIATION
+  BOOKED
+  LOST
+}
+
+enum LeadSource {
+  WEBSITE
+  PORTAL_99ACRES
+  PORTAL_MAGICBRICKS
+  PORTAL_HOUSING
+  FACEBOOK
+  GOOGLE_ADS
+  WALK_IN
+  REFERRAL
+  CHANNEL_PARTNER
+  CALL_CENTER
+  OTHER
+}
+
+enum LeadTemperature {
+  HOT
+  WARM
+  COLD
+}
+
+model Lead {
+  id            String          @id @default(cuid())
+  name          String
+  email         String?
+  phone         String
+  status        LeadStatus      @default(NEW)
+  source        LeadSource      @default(WEBSITE)
+  temperature   LeadTemperature @default(WARM)
+  score         Int             @default(0)
+  budgetMin     Int?
+  budgetMax     Int?
+  requirement   String?
+  projectId     String?
+  project       Project?        @relation(fields: [projectId], references: [id])
+  ownerId       String?
+  owner         User?           @relation("LeadOwner", fields: [ownerId], references: [id])
+  channelPartnerId String?
+  channelPartner   ChannelPartner? @relation(fields: [channelPartnerId], references: [id])
+  campaignId    String?
+  campaign      Campaign?       @relation(fields: [campaignId], references: [id])
+  tags          String[]
+  lostReason    String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  lastContactAt DateTime?
+
+  activities  Activity[]
+  siteVisits  SiteVisit[]
+  bookings    Booking[]
+
+  @@index([status])
+  @@index([source])
+  @@index([ownerId])
+}
+
+enum ActivityType {
+  NOTE
+  CALL
+  EMAIL
+  SMS
+  WHATSAPP
+  MEETING
+  STATUS_CHANGE
+  TASK
+}
+
+model Activity {
+  id        String       @id @default(cuid())
+  type      ActivityType
+  leadId    String
+  lead      Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?        @relation(fields: [userId], references: [id])
+  subject   String
+  body      String?
+  dueAt     DateTime?
+  completed Boolean      @default(false)
+  outcome   String?
+  createdAt DateTime     @default(now())
+
+  @@index([leadId])
+}
+
+enum SiteVisitStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  NO_SHOW
+  CANCELLED
+}
+
+model SiteVisit {
+  id         String          @id @default(cuid())
+  leadId     String
+  lead       Lead            @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  projectId  String?
+  project    Project?        @relation(fields: [projectId], references: [id])
+  agentId    String?
+  agent      User?           @relation("SiteVisitAgent", fields: [agentId], references: [id])
+  scheduledAt DateTime
+  status     SiteVisitStatus @default(SCHEDULED)
+  feedback   String?
+  createdAt  DateTime        @default(now())
+
+  @@index([leadId])
+  @@index([scheduledAt])
+}
+
+// ─── Lead distribution ──────────────────────────────────────────────────────
+
+enum DistributionStrategy {
+  ROUND_ROBIN
+  LOAD_BALANCED
+  SOURCE_BASED
+  PROJECT_BASED
+}
+
+model AssignmentRule {
+  id        String               @id @default(cuid())
+  name      String
+  strategy  DistributionStrategy @default(ROUND_ROBIN)
+  priority  Int                  @default(0)
+  active    Boolean              @default(true)
+  // Match conditions (null = match all)
+  source    LeadSource?
+  projectId String?
+  assigneeId String?
+  assignee   User?               @relation(fields: [assigneeId], references: [id])
+  createdAt DateTime             @default(now())
+}
+
+// ─── Inventory ──────────────────────────────────────────────────────────────
+
+enum ProjectStatus {
+  UPCOMING
+  ONGOING
+  READY_TO_MOVE
+  SOLD_OUT
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  developer   String?
+  city        String
+  locality    String?
+  status      ProjectStatus @default(ONGOING)
+  description String?
+  amenities   String[]
+  reraId      String?
+  coverImage  String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  towers     Tower[]
+  units      Unit[]
+  leads      Lead[]
+  siteVisits SiteVisit[]
+  bookings   Booking[]
+}
+
+model Tower {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  floors    Int
+  units     Unit[]
+}
+
+enum UnitStatus {
+  AVAILABLE
+  BLOCKED
+  BOOKED
+  SOLD
+}
+
+model Unit {
+  id          String     @id @default(cuid())
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  towerId     String?
+  tower       Tower?     @relation(fields: [towerId], references: [id])
+  unitNumber  String
+  floor       Int
+  type        String     // e.g. "2BHK", "3BHK", "Villa"
+  carpetArea  Int        // sq ft
+  builtUpArea Int?
+  facing      String?
+  basePrice   Int
+  status      UnitStatus @default(AVAILABLE)
+  createdAt   DateTime   @default(now())
+
+  bookings Booking[]
+
+  @@index([projectId])
+  @@index([status])
+}
+
+// ─── Bookings ───────────────────────────────────────────────────────────────
+
+enum BookingStatus {
+  TOKEN
+  AGREEMENT
+  REGISTERED
+  CANCELLED
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  leadId      String
+  lead        Lead          @relation(fields: [leadId], references: [id])
+  unitId      String
+  unit        Unit          @relation(fields: [unitId], references: [id])
+  projectId   String
+  project     Project       @relation(fields: [projectId], references: [id])
+  agentId     String?
+  agent       User?         @relation("BookingAgent", fields: [agentId], references: [id])
+  status      BookingStatus @default(TOKEN)
+  totalValue  Int
+  bookedAt    DateTime      @default(now())
+  payments    Payment[]
+
+  @@index([projectId])
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  bookingId String
+  booking   Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  milestone String
+  amount    Int
+  dueDate   DateTime
+  status    PaymentStatus @default(PENDING)
+  paidAt    DateTime?
+}
+
+// ─── Channel partners ───────────────────────────────────────────────────────
+
+enum PartnerStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+model ChannelPartner {
+  id          String        @id @default(cuid())
+  name        String
+  company     String?
+  email       String?
+  phone       String
+  reraId      String?
+  city        String?
+  status      PartnerStatus @default(PENDING)
+  commissionPct Float       @default(2.0)
+  createdAt   DateTime      @default(now())
+  leads       Lead[]
+}
+
+// ─── Marketing ──────────────────────────────────────────────────────────────
+
+enum CampaignChannel {
+  EMAIL
+  SMS
+  WHATSAPP
+  MULTICHANNEL
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  COMPLETED
+  PAUSED
+}
+
+model Campaign {
+  id          String          @id @default(cuid())
+  name        String
+  channel     CampaignChannel @default(EMAIL)
+  status      CampaignStatus  @default(DRAFT)
+  templateId  String?
+  template    Template?       @relation(fields: [templateId], references: [id])
+  segmentId   String?
+  segment     Segment?        @relation(fields: [segmentId], references: [id])
+  scheduledAt DateTime?
+  // Aggregate metrics
+  sent        Int             @default(0)
+  delivered   Int             @default(0)
+  opened      Int             @default(0)
+  clicked     Int             @default(0)
+  converted   Int             @default(0)
+  createdAt   DateTime        @default(now())
+  leads       Lead[]
+}
+
+model Template {
+  id        String          @id @default(cuid())
+  name      String
+  channel   CampaignChannel @default(EMAIL)
+  subject   String?
+  body      String
+  createdAt DateTime        @default(now())
+  campaigns Campaign[]
+}
+
+model Segment {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  // Stored filter definition (JSON) applied against leads
+  filters     Json
+  createdAt   DateTime   @default(now())
+  campaigns   Campaign[]
+}
