@@ -1,0 +1,110 @@
+// EstateCRM Marketing — client-safe shared helpers and constants.
+// Pure module (no "use client", no server imports) so it can be consumed by both
+// the marketing service layer and client widgets without bundling the data layer.
+
+import type { CampaignChannel, CampaignStatus, Lead, SegmentFilter } from "@/types/domain";
+
+// ─── Merge tags ─────────────────────────────────────────────────────────────
+export const MERGE_TAGS = ["name", "project", "date", "phone"] as const;
+export type MergeTag = (typeof MERGE_TAGS)[number];
+
+export type MergeVars = Partial<Record<MergeTag, string>>;
+
+export const SAMPLE_MERGE_VARS: Record<MergeTag, string> = {
+  name: "Rahul Agarwal",
+  project: "Skyline Heights",
+  date: "21 Jun 2026, 11:00 AM",
+  phone: "+91 98200 10001",
+};
+
+/** Replace {{tag}} placeholders in a template body with the supplied values. */
+export function renderPreview(body: string, vars: MergeVars = SAMPLE_MERGE_VARS): string {
+  return body.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, tag: string) => {
+    const value = (vars as Record<string, string | undefined>)[tag];
+    return value ?? match;
+  });
+}
+
+/** Extract the distinct merge tags used in a template body. */
+export function extractMergeTags(body: string): string[] {
+  const found = new Set<string>();
+  for (const m of body.matchAll(/\{\{\s*(\w+)\s*\}\}/g)) {
+    const tag = m[1];
+    if (tag) found.add(tag);
+  }
+  return [...found];
+}
+
+// ─── Channels & statuses ────────────────────────────────────────────────────
+export const CAMPAIGN_CHANNELS: CampaignChannel[] = ["EMAIL", "SMS", "WHATSAPP", "MULTICHANNEL"];
+export const TEMPLATE_CHANNELS: CampaignChannel[] = ["EMAIL", "SMS", "WHATSAPP"];
+export const CAMPAIGN_STATUSES: CampaignStatus[] = ["DRAFT", "SCHEDULED", "RUNNING", "COMPLETED", "PAUSED"];
+
+/** Allowed campaign status transitions (DRAFT→SCHEDULED→RUNNING→COMPLETED/PAUSED). */
+export const STATUS_TRANSITIONS: Record<CampaignStatus, CampaignStatus[]> = {
+  DRAFT: ["SCHEDULED", "RUNNING"],
+  SCHEDULED: ["RUNNING", "DRAFT"],
+  RUNNING: ["PAUSED", "COMPLETED"],
+  PAUSED: ["RUNNING", "COMPLETED"],
+  COMPLETED: [],
+};
+
+// ─── Segment builder fields & operators ─────────────────────────────────────
+export const SEGMENT_OPS = ["eq", "in", "gte", "lte", "contains"] as const;
+export type SegmentOp = (typeof SEGMENT_OPS)[number];
+
+export interface SegmentFieldDef {
+  field: keyof Lead;
+  label: string;
+  kind: "string" | "number" | "enum" | "array";
+  /** Suggested values shown as a hint in the builder. */
+  options?: string[];
+}
+
+export const SEGMENT_FIELDS: SegmentFieldDef[] = [
+  { field: "status", label: "Status", kind: "enum", options: ["NEW", "CONTACTED", "QUALIFIED", "SITE_VISIT_SCHEDULED", "SITE_VISIT_DONE", "NEGOTIATION", "BOOKED", "LOST"] },
+  { field: "source", label: "Source", kind: "enum", options: ["WEBSITE", "PORTAL_99ACRES", "PORTAL_MAGICBRICKS", "PORTAL_HOUSING", "FACEBOOK", "GOOGLE_ADS", "WALK_IN", "REFERRAL", "CHANNEL_PARTNER", "CALL_CENTER", "OTHER"] },
+  { field: "temperature", label: "Temperature", kind: "enum", options: ["HOT", "WARM", "COLD"] },
+  { field: "score", label: "Score", kind: "number" },
+  { field: "budgetMin", label: "Budget Min (₹)", kind: "number" },
+  { field: "budgetMax", label: "Budget Max (₹)", kind: "number" },
+  { field: "name", label: "Name", kind: "string" },
+  { field: "email", label: "Email", kind: "string" },
+  { field: "requirement", label: "Requirement", kind: "string" },
+  { field: "projectId", label: "Project ID", kind: "string" },
+  { field: "tags", label: "Tags", kind: "array" },
+];
+
+export const OP_LABELS: Record<SegmentOp, string> = {
+  eq: "equals",
+  in: "is one of",
+  gte: "is at least",
+  lte: "is at most",
+  contains: "contains",
+};
+
+/**
+ * Convert a raw builder input string into the typed value stored on a
+ * SegmentFilter, based on the operator and the field's kind.
+ */
+export function parseFilterValue(field: keyof Lead, op: SegmentOp, raw: string): SegmentFilter["value"] {
+  const def = SEGMENT_FIELDS.find((f) => f.field === field);
+  if (op === "in") {
+    return raw
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+  }
+  if (op === "gte" || op === "lte" || def?.kind === "number") {
+    const n = Number(raw);
+    return Number.isNaN(n) ? raw : n;
+  }
+  return raw;
+}
+
+/** Human-readable rendering of a filter value (for chips & summaries). */
+export function formatFilterValue(value: unknown): string {
+  if (Array.isArray(value)) return value.map(String).join(", ");
+  if (value == null) return "—";
+  return String(value);
+}

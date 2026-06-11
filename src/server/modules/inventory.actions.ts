@@ -1,0 +1,95 @@
+"use server";
+
+// EstateCRM — inventory server actions.
+// Thin, RBAC-gated wrappers around the inventory service for forms & widgets.
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { ZodError } from "zod";
+import { can } from "@/server/auth/rbac";
+import { getCurrentUser } from "@/server/auth/session";
+import { createProject, updateProject, updateUnitStatus } from "./inventory";
+
+export interface ActionState {
+  error?: string;
+}
+
+function errorMessage(e: unknown): string {
+  if (e instanceof ZodError) return e.issues[0]?.message ?? "Invalid input";
+  if (e instanceof Error) return e.message;
+  return "Something went wrong";
+}
+
+async function assertInventoryWrite(): Promise<void> {
+  const user = await getCurrentUser();
+  if (!can(user.role, "inventory.write")) {
+    throw new Error("You do not have permission to modify inventory.");
+  }
+}
+
+function optionalField(formData: FormData, key: string): string | undefined {
+  const value = formData.get(key);
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+export async function createProjectAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  let projectId: string;
+  try {
+    await assertInventoryWrite();
+    const amenitiesRaw = optionalField(formData, "amenities") ?? "";
+    const project = await createProject({
+      name: String(formData.get("name") ?? "").trim(),
+      city: String(formData.get("city") ?? "").trim(),
+      status: String(formData.get("status") ?? "UPCOMING"),
+      developer: optionalField(formData, "developer"),
+      locality: optionalField(formData, "locality"),
+      description: optionalField(formData, "description"),
+      reraId: optionalField(formData, "reraId"),
+      coverImage: optionalField(formData, "coverImage"),
+      amenities: amenitiesRaw
+        .split(",")
+        .map((a) => a.trim())
+        .filter(Boolean),
+    });
+    projectId = project.id;
+  } catch (e) {
+    return { error: errorMessage(e) };
+  }
+  revalidatePath("/inventory");
+  redirect(`/inventory/${projectId}`);
+}
+
+export async function updateProjectAction(
+  projectId: string,
+  patch: Record<string, unknown>,
+): Promise<ActionState> {
+  try {
+    await assertInventoryWrite();
+    await updateProject(projectId, patch);
+  } catch (e) {
+    return { error: errorMessage(e) };
+  }
+  revalidatePath("/inventory");
+  revalidatePath(`/inventory/${projectId}`);
+  return {};
+}
+
+export async function updateUnitStatusAction(
+  unitId: string,
+  status: string,
+): Promise<ActionState> {
+  let projectId: string;
+  try {
+    await assertInventoryWrite();
+    const unit = await updateUnitStatus(unitId, status);
+    projectId = unit.projectId;
+  } catch (e) {
+    return { error: errorMessage(e) };
+  }
+  revalidatePath("/inventory");
+  revalidatePath(`/inventory/${projectId}`);
+  return {};
+}
