@@ -21,8 +21,8 @@ export default async function DashboardLayout({
     <div className="flex min-h-screen">
       <Sidebar visibleNav={visibleNav} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar user={user} />
-        <main className="flex-1 space-y-6 p-6">{children}</main>
+        <Topbar user={user} visibleNav={visibleNav} />
+        <main className="flex-1 space-y-6 p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );

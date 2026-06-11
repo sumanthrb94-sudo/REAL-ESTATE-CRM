@@ -1,4 +1,6 @@
 import * as React from "react";
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 
 // ─── Page header ──────────────────────────────────────────────────────────
@@ -28,14 +30,17 @@ export function StatCard({
   value,
   delta,
   icon,
+  href,
 }: {
   label: string;
   value: string;
   delta?: { value: string; positive?: boolean };
   icon?: React.ReactNode;
+  /** When set, the whole card becomes a link to this route. */
+  href?: string;
 }) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-5 card-shadow">
+  const body = (
+    <>
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-muted-foreground">{label}</p>
         {icon ? <div className="text-muted-foreground">{icon}</div> : null}
@@ -46,8 +51,22 @@ export function StatCard({
           {delta.value}
         </p>
       ) : null}
-    </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="group relative block rounded-lg border border-border bg-card p-5 card-shadow transition-colors hover:border-primary/40 hover:bg-muted/40"
+      >
+        <ArrowUpRight className="absolute right-3 top-3 h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+        {body}
+      </Link>
+    );
+  }
+
+  return <div className="rounded-lg border border-border bg-card p-5 card-shadow">{body}</div>;
 }
 
 // ─── Avatar ───────────────────────────────────────────────────────────────

@@ -30,12 +30,12 @@ export default async function DashboardPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="Total Leads" value={summary.totalLeads.toString()} delta={{ value: `+${summary.newLeadsThisWeek} this week`, positive: true }} icon={<Users className="h-5 w-5" />} />
-        <StatCard label="Active Leads" value={summary.activeLeads.toString()} icon={<Target className="h-5 w-5" />} />
-        <StatCard label="Conversion" value={`${summary.conversionRate}%`} icon={<TrendingUp className="h-5 w-5" />} />
-        <StatCard label="Pipeline Value" value={formatINR(summary.pipelineValue)} icon={<IndianRupee className="h-5 w-5" />} />
-        <StatCard label="Available Units" value={summary.availableUnits.toString()} icon={<Building2 className="h-5 w-5" />} />
-        <StatCard label="Upcoming Visits" value={summary.upcomingSiteVisits.toString()} icon={<CalendarCheck className="h-5 w-5" />} />
+        <StatCard href="/leads" label="Total Leads" value={summary.totalLeads.toString()} delta={{ value: `+${summary.newLeadsThisWeek} this week`, positive: true }} icon={<Users className="h-5 w-5" />} />
+        <StatCard href="/leads" label="Active Leads" value={summary.activeLeads.toString()} icon={<Target className="h-5 w-5" />} />
+        <StatCard href="/reports" label="Conversion" value={`${summary.conversionRate}%`} icon={<TrendingUp className="h-5 w-5" />} />
+        <StatCard href="/pipeline" label="Pipeline Value" value={formatINR(summary.pipelineValue)} icon={<IndianRupee className="h-5 w-5" />} />
+        <StatCard href="/inventory" label="Available Units" value={summary.availableUnits.toString()} icon={<Building2 className="h-5 w-5" />} />
+        <StatCard href="/site-visits" label="Upcoming Visits" value={summary.upcomingSiteVisits.toString()} icon={<CalendarCheck className="h-5 w-5" />} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
