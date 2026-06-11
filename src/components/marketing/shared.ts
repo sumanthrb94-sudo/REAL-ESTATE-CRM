@@ -2,7 +2,7 @@
 // Pure module (no "use client", no server imports) so it can be consumed by both
 // the marketing service layer and client widgets without bundling the data layer.
 
-import type { CampaignChannel, CampaignStatus, Lead, SegmentFilter } from "@/types/domain";
+import type { CampaignChannel, CampaignStatus, Lead } from "@/types/domain";
 
 // ─── Merge tags ─────────────────────────────────────────────────────────────
 export const MERGE_TAGS = ["name", "project", "date", "phone"] as const;
@@ -53,8 +53,20 @@ export const STATUS_TRANSITIONS: Record<CampaignStatus, CampaignStatus[]> = {
 export const SEGMENT_OPS = ["eq", "in", "gte", "lte", "contains"] as const;
 export type SegmentOp = (typeof SEGMENT_OPS)[number];
 
+/** Lead fields that segments are allowed to filter on. */
+export const FILTERABLE_LEAD_FIELDS = [
+  "name", "email", "phone", "status", "source", "temperature", "score",
+  "budgetMin", "budgetMax", "requirement", "projectId", "ownerId",
+  "channelPartnerId", "campaignId", "tags",
+] as const satisfies readonly (keyof Lead)[];
+export type FilterableLeadField = (typeof FILTERABLE_LEAD_FIELDS)[number];
+
+export function isFilterableLeadField(field: keyof Lead): field is FilterableLeadField {
+  return (FILTERABLE_LEAD_FIELDS as readonly string[]).includes(field);
+}
+
 export interface SegmentFieldDef {
-  field: keyof Lead;
+  field: FilterableLeadField;
   label: string;
   kind: "string" | "number" | "enum" | "array";
   /** Suggested values shown as a hint in the builder. */
@@ -83,11 +95,13 @@ export const OP_LABELS: Record<SegmentOp, string> = {
   contains: "contains",
 };
 
+export type FilterValue = string | number | boolean | (string | number)[];
+
 /**
  * Convert a raw builder input string into the typed value stored on a
  * SegmentFilter, based on the operator and the field's kind.
  */
-export function parseFilterValue(field: keyof Lead, op: SegmentOp, raw: string): SegmentFilter["value"] {
+export function parseFilterValue(field: FilterableLeadField, op: SegmentOp, raw: string): FilterValue {
   const def = SEGMENT_FIELDS.find((f) => f.field === field);
   if (op === "in") {
     return raw

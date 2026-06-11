@@ -157,6 +157,48 @@ export async function getBookingDetail(id: string): Promise<BookingDetail | null
   };
 }
 
+// ─── Form options ───────────────────────────────────────────────────────────
+export interface BookingFormOptions {
+  leads: { id: string; name: string; phone: string }[];
+  units: { id: string; projectId: string; unitNumber: string; type: string; basePrice: number }[];
+  projects: { id: string; name: string }[];
+  agents: { id: string; name: string }[];
+}
+
+/** Option lists for the "New Booking" form: bookable leads, open units, projects, agents. */
+export async function getBookingFormOptions(): Promise<BookingFormOptions> {
+  const [leads, units, projects, users, bookings] = await Promise.all([
+    db.leads.list({ orderBy: { field: "name", dir: "asc" } }),
+    db.units.list({ orderBy: { field: "unitNumber", dir: "asc" } }),
+    db.projects.list({ orderBy: { field: "name", dir: "asc" } }),
+    db.users.list(),
+    db.bookings.list(),
+  ]);
+
+  const leadsWithActiveBooking = new Set(
+    bookings.filter((b) => b.status !== "CANCELLED").map((b) => b.leadId),
+  );
+
+  return {
+    leads: leads
+      .filter((l) => l.status !== "LOST" && !leadsWithActiveBooking.has(l.id))
+      .map((l) => ({ id: l.id, name: l.name, phone: l.phone })),
+    units: units
+      .filter((u) => u.status === "AVAILABLE" || u.status === "BLOCKED")
+      .map((u) => ({
+        id: u.id,
+        projectId: u.projectId,
+        unitNumber: u.unitNumber,
+        type: u.type,
+        basePrice: u.basePrice,
+      })),
+    projects: projects.map((p) => ({ id: p.id, name: p.name })),
+    agents: users
+      .filter((u) => u.active && ["SALES_AGENT", "SALES_MANAGER", "SALES_HEAD"].includes(u.role))
+      .map((u) => ({ id: u.id, name: u.name })),
+  };
+}
+
 // ─── Mutations ──────────────────────────────────────────────────────────────
 export async function createBooking(input: unknown): Promise<Booking> {
   const data = bookingInputSchema.parse(input);
