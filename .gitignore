@@ -35,3 +35,9 @@ yarn-error.log*
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# Firebase emulator
+firebase-debug.log
+firestore-debug.log
+firebase-debug.*.log
+.firebase/
