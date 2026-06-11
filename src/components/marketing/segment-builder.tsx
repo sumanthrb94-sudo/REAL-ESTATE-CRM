@@ -21,15 +21,24 @@ import {
   SEGMENT_FIELDS,
   SEGMENT_OPS,
   formatFilterValue,
+  isFilterableLeadField,
   parseFilterValue,
+  type FilterValue,
+  type FilterableLeadField,
   type SegmentOp,
 } from "@/components/marketing/shared";
-import type { Lead, Segment, SegmentFilter } from "@/types/domain";
+import type { Segment, SegmentFilter } from "@/types/domain";
 
 interface FilterRow {
-  field: keyof Lead;
+  field: FilterableLeadField;
   op: SegmentOp;
   raw: string;
+}
+
+interface TypedFilter {
+  field: FilterableLeadField;
+  op: SegmentOp;
+  value: FilterValue;
 }
 
 interface PreviewState {
@@ -38,14 +47,16 @@ interface PreviewState {
 }
 
 function toRows(filters: SegmentFilter[]): FilterRow[] {
-  return filters.map((f) => ({
-    field: f.field,
-    op: f.op,
-    raw: formatFilterValue(f.value),
-  }));
+  return filters
+    .filter((f): f is SegmentFilter & { field: FilterableLeadField } => isFilterableLeadField(f.field))
+    .map((f) => ({
+      field: f.field,
+      op: f.op,
+      raw: formatFilterValue(f.value),
+    }));
 }
 
-function toFilters(rows: FilterRow[]): SegmentFilter[] {
+function toFilters(rows: FilterRow[]): TypedFilter[] {
   return rows
     .filter((r) => r.raw.trim().length > 0)
     .map((r) => ({
@@ -171,7 +182,7 @@ export function SegmentBuilder({
                       aria-label="Field"
                       className="sm:w-44"
                       value={String(row.field)}
-                      onChange={(e) => updateRow(i, { field: e.target.value as keyof Lead, raw: "" })}
+                      onChange={(e) => updateRow(i, { field: e.target.value as FilterableLeadField, raw: "" })}
                     >
                       {SEGMENT_FIELDS.map((f) => (
                         <option key={String(f.field)} value={String(f.field)}>{f.label}</option>

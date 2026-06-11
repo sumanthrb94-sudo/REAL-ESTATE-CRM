@@ -6,6 +6,7 @@
 import { z } from "zod";
 import { db } from "@/server/db";
 import {
+  FILTERABLE_LEAD_FIELDS,
   STATUS_TRANSITIONS,
   renderPreview,
   type MergeVars,
@@ -57,14 +58,8 @@ const filterValueSchema = z.union([
   z.array(z.union([z.string(), z.number()])),
 ]);
 
-const LEAD_FILTER_FIELDS = [
-  "name", "email", "phone", "status", "source", "temperature", "score",
-  "budgetMin", "budgetMax", "requirement", "projectId", "ownerId",
-  "channelPartnerId", "campaignId", "tags",
-] as const satisfies readonly (keyof Lead)[];
-
 export const segmentFilterSchema = z.object({
-  field: z.enum(LEAD_FILTER_FIELDS),
+  field: z.enum(FILTERABLE_LEAD_FIELDS),
   op: z.enum(["eq", "in", "gte", "lte", "contains"]),
   value: filterValueSchema,
 });
