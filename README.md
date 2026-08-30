@@ -84,16 +84,57 @@ Switching backends changes no business logic.
 
 ### Running on Firestore
 
-1. Firebase Console → Project settings → Service accounts → *Generate new private key*.
-2. Put `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` in `.env.local` (keep the literal `\n` escapes in the key).
-3. Set `DATA_DRIVER=firebase`.
-4. Seed the two projects and the admin account:
+**1. Create the database.** This is a one-time step in the Firebase console and
+cannot be done from a service account:
+
+> Firebase Console → your project → Firestore Database → **Create database** →
+> pick a location → Production mode
+
+The location is **permanent** — pick the region closest to your users
+(`asia-south1` / Mumbai for India, which also matches the `bom1` region pinned
+in `vercel.json`). Skipping this step produces a `PERMISSION_DENIED … has not
+been used in project` error on the first query; the seeder and inspector both
+translate that into these instructions.
+
+**2. Get a service-account key.** Firebase Console → Project settings →
+Service accounts → *Generate new private key*. Treat the downloaded JSON as a
+password: it bypasses all Firestore security rules.
+
+**3. Configure `.env.local`** (gitignored):
 
 ```bash
-npm run db:seed:firebase
+DATA_DRIVER="firebase"
+FIREBASE_PROJECT_ID="your-project"
+FIREBASE_CLIENT_EMAIL="firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com"
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----\n"
+SESSION_SECRET="…"
 ```
 
-The seeder refuses to run against a project that already has an admin, so it can't silently reset a live password. Use `npm run db:seed:firebase:wipe` to erase and start over.
+Keep the literal `\n` escapes in the key — the app converts them back to real
+newlines, and Vercel stores multi-line secrets the same way.
+
+**4. Seed and verify:**
+
+```bash
+npm run db:seed:firebase   # two projects + the admin account
+npm run db:inspect         # read-only: shows exactly what is stored
+```
+
+The seeder refuses to run against a project that already has an admin, so it
+cannot silently reset a live password. Use `npm run db:seed:firebase:wipe` to
+erase and start over.
+
+### Running against the Firestore emulator
+
+No credentials needed — only a project id:
+
+```bash
+npx firebase-tools setup:emulators:firestore
+java -jar ~/.cache/firebase/emulators/cloud-firestore-emulator-*.jar --host=127.0.0.1 --port=8085
+
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 npm run db:seed:firebase
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 npm run dev
+```
 
 > `prisma/schema.prisma` models the full domain but no store implements it. `DATA_DRIVER=prisma` throws rather than silently falling back to memory.
 
@@ -133,6 +174,7 @@ tests/                      # vitest: auth, CSV, route guards, domain rules
 | `npm run typecheck` | Type-check without emitting |
 | `npm run lint` | ESLint |
 | `npm run db:seed:firebase` | Seed projects + admin into Firestore |
+| `npm run db:inspect` | Read-only dump of what Firestore actually holds |
 | `npm run db:seed:firebase:wipe` | Wipe each collection, then re-seed |
 
 ---

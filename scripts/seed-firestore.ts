@@ -80,6 +80,36 @@ async function main() {
 main()
   .then(() => process.exit(0))
   .catch((err) => {
+    const msg = String(err?.message ?? err);
+
+    // First-run failure for every new project. The raw gRPC error is 300
+    // characters of stack around one actionable sentence, so surface the fix.
+    if (msg.includes("has not been used in project") || msg.includes("SERVICE_DISABLED")) {
+      console.error(
+        [
+          "",
+          "Firestore is not enabled on this project yet, so there is nothing to seed.",
+          "",
+          "Create the database once, in the Firebase console:",
+          `  https://console.firebase.google.com/project/${process.env.FIREBASE_PROJECT_ID}/firestore`,
+          "  -> Create database -> pick a location -> Production mode",
+          "",
+          "The location is permanent; pick the region closest to your users",
+          "(asia-south1 / Mumbai for India). Then re-run this command.",
+          "",
+        ].join("\n"),
+      );
+      process.exit(1);
+    }
+
+    if (msg.includes("UNAUTHENTICATED") || msg.includes("invalid_grant")) {
+      console.error(
+        "\nCredentials rejected. Check FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY" +
+          " (the key must keep its \\n escapes).\n",
+      );
+      process.exit(1);
+    }
+
     console.error("Seed failed:", err);
     process.exit(1);
   });

@@ -10,14 +10,15 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\"",
-    "db:seed:firebase": "tsx scripts/seed-firestore.ts",
-    "db:seed:firebase:wipe": "tsx scripts/seed-firestore.ts -- --wipe",
+    "db:seed:firebase": "tsx --env-file-if-exists=.env.local scripts/seed-firestore.ts",
+    "db:seed:firebase:wipe": "tsx --env-file-if-exists=.env.local scripts/seed-firestore.ts -- --wipe",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:inspect": "tsx --env-file-if-exists=.env.local scripts/inspect-firestore.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
