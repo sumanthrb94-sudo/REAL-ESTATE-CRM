@@ -113,3 +113,23 @@ describe("payment status invariant", () => {
     }
   });
 });
+
+describe("no hardcoded reporting windows", () => {
+  // The monthly trend chart was pinned to a hardcoded June 2026 to match the
+  // old demo seed, so anything created after that date silently fell outside
+  // the window. Both time-series reports must derive their window from the
+  // current date.
+  it("has no literal year-anchored dates in the analytics and reports modules", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+
+    for (const file of ["analytics.ts", "reports.ts"]) {
+      const source = readFileSync(join(process.cwd(), "src/server/modules", file), "utf8");
+      const literals = source.match(/new Date\(\s*["'`]\d{4}-/g) ?? [];
+      expect(
+        literals,
+        `${file} pins a reporting window to a literal date; derive it from new Date() instead`,
+      ).toHaveLength(0);
+    }
+  });
+});

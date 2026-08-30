@@ -106,7 +106,10 @@ export async function getAgentLeaderboard(): Promise<AgentPerformance[]> {
 export async function getMonthlyTrend(): Promise<{ month: string; leads: number; bookings: number }[]> {
   const [leads, bookings] = await Promise.all([db.leads.list(), db.bookings.list()]);
   const months: { key: string; label: string; leads: number; bookings: number }[] = [];
-  const base = new Date("2026-06-01T00:00:00Z");
+  // Six months ending with the current one. This was pinned to a hardcoded
+  // June 2026 to match the old demo seed, which meant anything created after
+  // that date fell outside the window and never appeared on the chart.
+  const base = new Date();
   for (let i = 5; i >= 0; i--) {
     const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
     months.push({
