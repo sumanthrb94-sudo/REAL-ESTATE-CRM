@@ -1,0 +1,39 @@
+rules_version = '2';
+
+// EstateCRM — Firestore security rules.
+//
+// READ THIS BEFORE CHANGING ANYTHING HERE.
+//
+// This app never touches Firestore from the browser. Every read and write goes
+// through the Firebase Admin SDK on the server (src/server/db/firebase.ts), and
+// the Admin SDK **bypasses security rules entirely** — it authenticates with a
+// service account, not an end user. Nothing below can break the application.
+//
+// So what are these rules for? Your Firebase web config (apiKey, projectId,
+// authDomain) is public by design — it ships in any client bundle and is safe
+// to expose. What it is NOT is an authorization boundary. Anyone holding that
+// config can open a direct connection to your Firestore database from a
+// browser. Security rules are the only thing standing between them and your
+// data.
+//
+// Since no legitimate client traffic exists, the correct rule is to deny all of
+// it. Access control for actual users lives in the app: role permissions in
+// src/server/auth/rbac.ts, route guards in src/server/auth/guard.ts, and
+// row-level scoping in the module services.
+//
+// Deploy with:  npx firebase-tools deploy --only firestore:rules --project modconcrm
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Deny every direct client read and write, at every path.
+    //
+    // If you later add a genuine client-side feature (a customer portal, a
+    // mobile app), do NOT loosen this blanket rule. Add a narrow match block
+    // above it for exactly the collection and operation that feature needs,
+    // gated on request.auth, and leave this deny-all as the fallback.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
