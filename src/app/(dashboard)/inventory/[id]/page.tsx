@@ -7,6 +7,7 @@ import { PageHeader, Section, StatCard } from "@/components/ui/misc";
 import { DonutChart } from "@/components/charts";
 import { UnitMatrix } from "@/components/inventory/unit-matrix";
 import { TowerManager } from "@/components/inventory/tower-manager";
+import { ProjectForm } from "@/components/inventory/project-form";
 import { can } from "@/server/auth/rbac";
 import { requirePermission } from "@/server/auth/guard";
 import { getProjectDetail } from "@/server/modules/inventory";
@@ -47,7 +48,12 @@ export default async function ProjectDetailPage({
       <PageHeader
         title={project.name}
         description={project.description}
-        actions={<Badge tone={statusTone(project.status)}>{humanize(project.status)}</Badge>}
+        actions={
+          <div className="flex items-center gap-2">
+            <Badge tone={statusTone(project.status)}>{humanize(project.status)}</Badge>
+            {canWrite ? <ProjectForm project={project} /> : null}
+          </div>
+        }
       />
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">

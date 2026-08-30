@@ -14,6 +14,7 @@
 //      A rule with an explicit `assigneeId` always wins over the strategy fallback.
 
 import { z } from "zod";
+import { blankToUndefined } from "@/lib/zod-helpers";
 import { db } from "@/server/db";
 import { listAssignableUsers } from "@/server/auth/session";
 import type { ServiceResult } from "@/server/modules/leads";
@@ -47,7 +48,7 @@ export const STRATEGY_DESCRIPTIONS: Record<DistributionStrategy, string> = {
 
 // ─── Rules CRUD ─────────────────────────────────────────────────────────────
 const optionalString = z.preprocess(
-  (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+  blankToUndefined,
   z.string().optional(),
 );
 
@@ -64,7 +65,7 @@ export const ruleInputSchema = z
         .max(100, "Priority cannot exceed 100"),
     ),
     source: z.preprocess(
-      (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+      blankToUndefined,
       z.enum(LEAD_SOURCES as [LeadSource, ...LeadSource[]]).optional(),
     ),
     projectId: optionalString,

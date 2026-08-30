@@ -4,6 +4,7 @@
 // visit advances early-stage leads; completing one moves them to SITE_VISIT_DONE).
 
 import { z } from "zod";
+import { blankToUndefined } from "@/lib/zod-helpers";
 import { db } from "@/server/db";
 import { changeStatus, type ServiceResult } from "@/server/modules/leads";
 import type {
@@ -24,7 +25,7 @@ export const SITE_VISIT_STATUSES: SiteVisitStatus[] = [
 
 // ─── Validation ─────────────────────────────────────────────────────────────
 const optionalString = z.preprocess(
-  (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+  blankToUndefined,
   z.string().optional(),
 );
 

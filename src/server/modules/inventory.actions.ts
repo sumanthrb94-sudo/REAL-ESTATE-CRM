@@ -74,6 +74,37 @@ export async function createProjectAction(
   redirect(`/inventory/${projectId}`);
 }
 
+/** Form-driven project edit, mirroring createProjectAction's field handling. */
+export async function updateProjectFormAction(
+  projectId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    await assertInventoryWrite();
+    const amenitiesRaw = optionalField(formData, "amenities") ?? "";
+    await updateProject(projectId, {
+      name: String(formData.get("name") ?? "").trim(),
+      city: String(formData.get("city") ?? "").trim(),
+      status: String(formData.get("status") ?? "UPCOMING"),
+      developer: optionalField(formData, "developer"),
+      locality: optionalField(formData, "locality"),
+      description: optionalField(formData, "description"),
+      reraId: optionalField(formData, "reraId"),
+      coverImage: optionalField(formData, "coverImage"),
+      amenities: amenitiesRaw
+        .split(",")
+        .map((a) => a.trim())
+        .filter(Boolean),
+    });
+  } catch (e) {
+    return { error: errorMessage(e) };
+  }
+  revalidatePath("/inventory");
+  revalidatePath(`/inventory/${projectId}`);
+  return { success: "Project details saved." };
+}
+
 export async function updateProjectAction(
   projectId: string,
   patch: Record<string, unknown>,

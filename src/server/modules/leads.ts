@@ -4,6 +4,7 @@
 // transitions, activity logging) live in exactly one place.
 
 import { z } from "zod";
+import { blankToUndefined } from "@/lib/zod-helpers";
 import { db } from "@/server/db";
 import { visibleOwnerIds } from "@/server/auth/guard";
 import {
@@ -44,7 +45,7 @@ const CONTACT_TYPES: ActivityType[] = ["CALL", "EMAIL", "SMS", "WHATSAPP", "MEET
 // ─── Validation schemas ─────────────────────────────────────────────────────
 /** "" → undefined so empty <select>/<input> values behave as "not provided". */
 const optionalString = z.preprocess(
-  (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+  blankToUndefined,
   z.string().optional(),
 );
 
@@ -60,7 +61,7 @@ export const leadInputSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters"),
   phone: z.string().trim().min(8, "Enter a valid phone number"),
   email: z.preprocess(
-    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    blankToUndefined,
     z.string().trim().email("Enter a valid email").optional(),
   ),
   status: z.enum(LEAD_STATUSES as [LeadStatus, ...LeadStatus[]]).default("NEW"),
@@ -84,7 +85,7 @@ export const activityInputSchema = z.object({
   body: optionalString,
   outcome: optionalString,
   dueAt: z.preprocess(
-    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    blankToUndefined,
     z
       .string()
       .refine((v) => !Number.isNaN(Date.parse(v)), "Enter a valid date")
