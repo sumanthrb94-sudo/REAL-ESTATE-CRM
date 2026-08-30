@@ -12,7 +12,7 @@ import { CampaignForm } from "@/components/marketing/campaign-form";
 import { CampaignRowActions } from "@/components/marketing/campaign-row-actions";
 import { Funnel } from "@/components/marketing/funnel";
 import { can } from "@/server/auth/rbac";
-import { getCurrentUser } from "@/server/auth/session";
+import { requirePermission } from "@/server/auth/guard";
 import {
   buildFunnel,
   getMarketingStats,
@@ -29,7 +29,7 @@ export default async function MarketingPage({
 }) {
   const [{ campaign: selectedId }, user, stats, campaigns, templates, segments] = await Promise.all([
     searchParams,
-    getCurrentUser(),
+    requirePermission("marketing.read"),
     getMarketingStats(),
     listCampaigns(),
     listTemplates(),

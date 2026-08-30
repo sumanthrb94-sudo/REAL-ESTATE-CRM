@@ -8,7 +8,7 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { BookingStatusSelect } from "@/components/inventory/booking-status-select";
 import { MarkPaidButton } from "@/components/inventory/mark-paid-button";
 import { can } from "@/server/auth/rbac";
-import { getCurrentUser } from "@/server/auth/session";
+import { requirePermission } from "@/server/auth/guard";
 import { getBookingDetail } from "@/server/modules/bookings";
 import { formatDate, formatINR, formatNumber, humanize } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ export default async function BookingDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [user, detail] = await Promise.all([getCurrentUser(), getBookingDetail(id)]);
+  const [user, detail] = await Promise.all([requirePermission("booking.read"), getBookingDetail(id)]);
   if (!detail) notFound();
 
   const canWrite = can(user.role, "booking.write");

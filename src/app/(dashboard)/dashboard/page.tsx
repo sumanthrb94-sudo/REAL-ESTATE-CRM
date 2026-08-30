@@ -11,9 +11,14 @@ import {
   getLeadsByStatus,
   getMonthlyTrend,
 } from "@/server/modules/analytics";
+import { requirePermission } from "@/server/auth/guard";
 import { formatINR, humanize } from "@/lib/utils";
 
 export default async function DashboardPage() {
+  // The dashboard aggregates the whole organisation, so it needs report.read —
+  // the same permission the nav registry gates it behind.
+  await requirePermission("report.read");
+
   const [summary, byStatus, bySource, trend, leaderboard] = await Promise.all([
     getDashboardSummary(),
     getLeadsByStatus(),

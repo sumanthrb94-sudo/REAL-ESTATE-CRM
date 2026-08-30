@@ -13,8 +13,7 @@ import { StatCard } from "@/components/ui/misc";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { CategoryBarChart } from "@/components/charts";
 import { RevenueTrendChart } from "@/components/reports/revenue-chart";
-import { can } from "@/server/auth/rbac";
-import { getCurrentUser } from "@/server/auth/session";
+import { requirePermission } from "@/server/auth/guard";
 import { getDashboardSummary } from "@/server/modules/analytics";
 import {
   getProjectPerformance,
@@ -26,15 +25,7 @@ import {
 import { formatINR, formatNumber, humanize } from "@/lib/utils";
 
 export default async function ReportsPage() {
-  const user = await getCurrentUser();
-  if (!can(user.role, "report.read")) {
-    return (
-      <EmptyState
-        title="Access restricted"
-        description="You do not have permission to view reports."
-      />
-    );
-  }
+  await requirePermission("report.read");
 
   const [summary, funnel, sources, projects, revenue, team] = await Promise.all([
     getDashboardSummary(),

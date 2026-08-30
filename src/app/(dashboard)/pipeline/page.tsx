@@ -5,13 +5,16 @@ import { IndianRupee, KanbanSquare, Target, TrendingUp } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/ui/misc";
 import { PipelineBoard, type PipelineColumn } from "@/components/leads/pipeline-board";
 import { can } from "@/server/auth/rbac";
-import { getCurrentUser } from "@/server/auth/session";
-import { listLeads } from "@/server/modules/leads";
+import { requirePermission, visibleOwnerIds } from "@/server/auth/guard";
+import { listLeads, teamMemberIds } from "@/server/modules/leads";
 import { LEAD_STATUSES } from "@/types/domain";
 import { formatINR, percent } from "@/lib/utils";
 
 export default async function PipelinePage() {
-  const [user, leads] = await Promise.all([getCurrentUser(), listLeads()]);
+  const user = await requirePermission("lead.read");
+  const leads = await listLeads({
+    ownerScope: await visibleOwnerIds(user, () => teamMemberIds(user)),
+  });
   const canWrite = can(user.role, "lead.write");
 
   const columns: PipelineColumn[] = LEAD_STATUSES.map((status) => {

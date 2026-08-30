@@ -3,13 +3,15 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Building2, CheckCircle2, Lock, BookmarkCheck, Tag } from "lucide-react";
 import { Badge, statusTone } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { EmptyState, PageHeader, Section, StatCard } from "@/components/ui/misc";
+import { PageHeader, Section, StatCard } from "@/components/ui/misc";
 import { DonutChart } from "@/components/charts";
 import { UnitMatrix } from "@/components/inventory/unit-matrix";
+import { TowerManager } from "@/components/inventory/tower-manager";
 import { can } from "@/server/auth/rbac";
-import { getCurrentUser } from "@/server/auth/session";
+import { requirePermission } from "@/server/auth/guard";
 import { getProjectDetail } from "@/server/modules/inventory";
 import { formatINR, formatNumber, humanize } from "@/lib/utils";
+import { UNIT_STATUS_HEX } from "@/lib/status-colors";
 import type { UnitStatus } from "@/types/domain";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +29,7 @@ export default async function ProjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [user, detail] = await Promise.all([getCurrentUser(), getProjectDetail(id)]);
+  const [user, detail] = await Promise.all([requirePermission("inventory.read"), getProjectDetail(id)]);
   if (!detail) notFound();
 
   const canWrite = can(user.role, "inventory.write");
@@ -87,6 +89,13 @@ export default async function ProjectDetailPage({
               data={breakdown
                 .filter((b) => b.count > 0)
                 .map((b) => ({ name: humanize(b.status), value: b.count }))}
+              // Same four colours the unit matrix below uses.
+              colors={Object.fromEntries(
+                (Object.keys(UNIT_STATUS_HEX) as UnitStatus[]).map((s) => [
+                  humanize(s),
+                  UNIT_STATUS_HEX[s],
+                ]),
+              )}
             />
           </CardContent>
         </Card>
@@ -124,24 +133,29 @@ export default async function ProjectDetailPage({
         </Card>
       </div>
 
-      <Section
-        title="Unit Availability Matrix"
-        description="Units grouped by tower and floor — click a unit for details."
-      >
-        {detail.totalUnits === 0 ? (
-          <EmptyState
-            icon={<Building2 className="h-8 w-8" />}
-            title="No units in this project yet"
-            description="Units will appear here once inventory is uploaded for this project."
-          />
-        ) : (
+      <TowerManager
+        projectId={project.id}
+        canWrite={canWrite}
+        towers={detail.towers.map((t) => ({
+          id: t.tower.id,
+          name: t.tower.name,
+          floors: t.tower.floors,
+          unitCount: t.unitCount,
+        }))}
+      />
+
+      {detail.totalUnits > 0 ? (
+        <Section
+          title="Unit Availability Matrix"
+          description="Units grouped by tower and floor — click a unit for details."
+        >
           <UnitMatrix
             towers={detail.towers}
             unassignedUnits={detail.unassignedUnits}
             canWrite={canWrite}
           />
-        )}
-      </Section>
+        </Section>
+      ) : null}
     </div>
   );
 }

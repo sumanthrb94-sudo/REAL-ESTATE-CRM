@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as Icons from "lucide-react";
-import { NAV, type NavGroup } from "@/config/nav";
+import { NAV, activeNavHref, type NavGroup } from "@/config/nav";
 import { cn } from "@/lib/utils";
 
 function Icon({ name, className }: { name: string; className?: string }) {
@@ -27,6 +27,7 @@ export function MobileNav({ visibleNav }: { visibleNav: NavGroup[] }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const groups = visibleNav.length ? visibleNav : NAV;
+  const activeHref = activeNavHref(groups, pathname);
 
   useEffect(() => setMounted(true), []);
 
@@ -78,8 +79,7 @@ export function MobileNav({ visibleNav }: { visibleNav: NavGroup[] }) {
               </p>
               <ul className="space-y-1">
                 {group.items.map((item) => {
-                  const active =
-                    pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                  const active = item.href === activeHref;
                   return (
                     <li key={item.href}>
                       <Link
@@ -102,7 +102,7 @@ export function MobileNav({ visibleNav }: { visibleNav: NavGroup[] }) {
             </div>
           ))}
         </nav>
-        <div className="shrink-0 border-t border-border px-6 py-4 text-xs text-muted-foreground">v1.0 · Demo data</div>
+        <div className="shrink-0 border-t border-border px-6 py-4 text-xs text-muted-foreground">EstateCRM v1.0</div>
       </aside>
     </div>
   );

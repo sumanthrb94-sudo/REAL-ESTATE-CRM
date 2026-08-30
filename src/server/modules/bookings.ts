@@ -9,6 +9,7 @@ import type {
   BookingStatus,
   Lead,
   Payment,
+  PaymentStatus,
   Project,
   Unit,
   UnitStatus,
@@ -241,8 +242,8 @@ export async function createBooking(input: unknown): Promise<Booking> {
         milestone: m.milestone,
         amount: Math.round(totalValue * m.pct),
         dueDate: new Date(Date.now() + m.dueInDays * day).toISOString(),
-        status: i === 0 ? "PAID" : "PENDING",
-        paidAt: i === 0 ? nowIso : undefined,
+        // The booking token is collected at booking time; the rest are due later.
+        ...paymentStatusPatch(i === 0 ? "PAID" : "PENDING", nowIso),
       }),
     ),
   );
@@ -266,15 +267,32 @@ export async function updateBookingStatus(id: string, status: unknown): Promise<
   return updated;
 }
 
+/**
+ * The only place a payment's status is set.
+ *
+ * PAID and `paidAt` must move together — a milestone showing a green "Paid"
+ * badge beside an empty Paid On column is a data bug that reads as a UI bug.
+ * Routing every status change through here keeps the two in lockstep.
+ */
+export function paymentStatusPatch(
+  status: PaymentStatus,
+  paidAt = new Date().toISOString(),
+): Pick<Payment, "status" | "paidAt"> {
+  return status === "PAID" ? { status, paidAt } : { status, paidAt: undefined };
+}
+
+/** True when a payment record violates the PAID ⇔ paidAt invariant. */
+export function isPaymentConsistent(payment: Pick<Payment, "status" | "paidAt">): boolean {
+  return payment.status === "PAID" ? Boolean(payment.paidAt) : true;
+}
+
 /** Mark a milestone payment as PAID. */
 export async function recordPayment(paymentId: string): Promise<Payment> {
   const payment = await db.payments.find(paymentId);
   if (!payment) throw new Error("Payment not found");
   if (payment.status === "PAID") return payment;
-  const updated = await db.payments.update(paymentId, {
-    status: "PAID",
-    paidAt: new Date().toISOString(),
-  });
+
+  const updated = await db.payments.update(paymentId, paymentStatusPatch("PAID"));
   if (!updated) throw new Error("Payment not found");
   return updated;
 }

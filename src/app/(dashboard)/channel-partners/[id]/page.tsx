@@ -8,7 +8,7 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { PartnerEditForm } from "@/components/partners/partner-edit-form";
 import { PartnerStatusActions } from "@/components/partners/partner-status-actions";
 import { can } from "@/server/auth/rbac";
-import { getCurrentUser } from "@/server/auth/session";
+import { requirePermission } from "@/server/auth/guard";
 import { getPartnerDetail } from "@/server/modules/partners";
 import { formatDate, formatINR, formatNumber, humanize } from "@/lib/utils";
 
@@ -17,15 +17,7 @@ export default async function PartnerDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await getCurrentUser();
-  if (!can(user.role, "partner.read")) {
-    return (
-      <EmptyState
-        title="Access restricted"
-        description="You do not have permission to view channel partners."
-      />
-    );
-  }
+  const user = await requirePermission("partner.read");
 
   const { id } = await params;
   const detail = await getPartnerDetail(id);

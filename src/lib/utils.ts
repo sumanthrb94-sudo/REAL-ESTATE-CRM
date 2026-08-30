@@ -35,13 +35,52 @@ export function formatDateTime(value?: string | Date | null): string {
   });
 }
 
-/** Humanize an ENUM_LIKE token into "Enum Like". */
+/**
+ * Words the default title-casing gets wrong. Keyed by the lowercased token so
+ * "SMS" doesn't come out as "Sms" and "WhatsApp" doesn't lose its capital A.
+ */
+const WORD_OVERRIDES: Record<string, string> = {
+  sms: "SMS",
+  whatsapp: "WhatsApp",
+  rera: "RERA",
+  bhk: "BHK",
+  kyc: "KYC",
+  crm: "CRM",
+  id: "ID",
+  ads: "Ads",
+  "99acres": "99acres",
+  magicbricks: "MagicBricks",
+  emi: "EMI",
+  roi: "ROI",
+};
+
+/**
+ * Humanize an ENUM_LIKE token into "Enum Like", respecting the acronyms and
+ * brand names in WORD_OVERRIDES.
+ */
 export function humanize(token?: string | null): string {
   if (!token) return "—";
   return token
     .toLowerCase()
     .split("_")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .map((w) => WORD_OVERRIDES[w] ?? w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+/**
+ * Turn a camelCase or snake_case field name into a label: `budgetMax` becomes
+ * "Budget max", `lastContactAt` becomes "Last contact at".
+ */
+export function fieldLabel(field: string): string {
+  const spaced = field
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .toLowerCase();
+  const words = spaced.split(" ").filter(Boolean);
+  if (words.length === 0) return field;
+  return words
+    .map((w, i) => WORD_OVERRIDES[w] ?? (i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w))
     .join(" ");
 }
 

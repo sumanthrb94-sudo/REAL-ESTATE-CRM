@@ -7,7 +7,7 @@ import { EmptyState, PageHeader, StatCard } from "@/components/ui/misc";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { BookingForm } from "@/components/inventory/booking-form";
 import { can } from "@/server/auth/rbac";
-import { getCurrentUser } from "@/server/auth/session";
+import { requirePermission } from "@/server/auth/guard";
 import {
   BOOKING_STATUSES,
   getBookingFormOptions,
@@ -32,7 +32,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
   const status = BOOKING_STATUSES.find((s) => s === statusParam);
 
   const [user, rows, stats, options] = await Promise.all([
-    getCurrentUser(),
+    requirePermission("booking.read"),
     listBookings({ projectId, status }),
     getBookingStats(),
     getBookingFormOptions(),

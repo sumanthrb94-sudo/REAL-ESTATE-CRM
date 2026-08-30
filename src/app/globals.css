@@ -64,4 +64,32 @@
   .card-shadow {
     box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
   }
+
+  /*
+   * Fades whichever edge of a horizontal scroller still has content past it,
+   * so a table that is wider than its card reads as scrollable instead of
+   * merely cut off.
+   *
+   * Four layered backgrounds: two opaque "covers" pinned with `local`
+   * attachment that slide away as you scroll, revealing two `scroll`-attached
+   * gradients underneath. No JS, no scroll listener.
+   */
+  .scroll-shadow {
+    background-image:
+      linear-gradient(to right, hsl(var(--card)), transparent),
+      linear-gradient(to left, hsl(var(--card)), transparent),
+      linear-gradient(to right, rgb(0 0 0 / 0.09), transparent),
+      linear-gradient(to left, rgb(0 0 0 / 0.09), transparent);
+    background-position: left center, right center, left center, right center;
+    background-repeat: no-repeat;
+    background-size: 28px 100%, 28px 100%, 14px 100%, 14px 100%;
+    background-attachment: local, local, scroll, scroll;
+  }
+
+  /* Keyboard users need to see which scroller they are in. */
+  .scroll-shadow:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: var(--radius);
+  }
 }

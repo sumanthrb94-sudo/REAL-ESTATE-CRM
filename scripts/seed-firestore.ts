@@ -18,7 +18,8 @@ try {
 }
 
 import { getDb } from "../src/server/db/firebase";
-import { buildSeed } from "../src/server/db/seed";
+import { buildSeed, BOOTSTRAP_EMAIL, BOOTSTRAP_PASSWORD } from "../src/server/db/seed";
+import { hashPasswordSync } from "../src/server/auth/password";
 
 const BATCH_LIMIT = 450; // Firestore caps writes at 500 per batch.
 
@@ -35,8 +36,20 @@ async function wipeCollection(db: FirebaseFirestore.Firestore, name: string) {
 async function main() {
   const wipe = process.argv.includes("--wipe");
   const db = getDb();
-  const seed = buildSeed();
+  const seed = buildSeed(hashPasswordSync(BOOTSTRAP_PASSWORD));
   const collections = Object.keys(seed);
+
+  // Re-seeding without --wipe would reset an existing admin's password back to
+  // the bootstrap value, so refuse when that account already exists.
+  const existingAdmin = await db.collection("users").doc("usr_admin").get();
+  if (existingAdmin.exists && !wipe) {
+    console.error(
+      "Refusing to seed: an admin account already exists in this project.\n" +
+        "Re-running would overwrite its password with the bootstrap value.\n" +
+        "Use `npm run db:seed:firebase:wipe` if you really want to erase and start over.",
+    );
+    process.exit(1);
+  }
 
   console.log(`Seeding Firestore — ${collections.length} collections${wipe ? " (wipe first)" : ""}…`);
 
@@ -57,7 +70,11 @@ async function main() {
     console.log(`  ✓ ${name}: ${rows.length} doc(s)`);
   }
 
-  console.log(`Done. Wrote ${total} documents across ${collections.length} collections.`);
+  console.log(`\nDone. Wrote ${total} documents across ${collections.length} collections.`);
+  console.log(`\nSign in at /login with:`);
+  console.log(`  email:    ${BOOTSTRAP_EMAIL}`);
+  console.log(`  password: ${BOOTSTRAP_PASSWORD}`);
+  console.log(`You will be asked to choose a new password immediately.\n`);
 }
 
 main()

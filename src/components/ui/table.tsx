@@ -1,9 +1,17 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Horizontally scrollable table.
+ *
+ * The scroll container alone was not enough: with overlay scrollbars, a table
+ * wider than its card just looked cut off, and the clipped columns were often
+ * the ones people came for. `scroll-shadow` (globals.css) paints a fade on
+ * whichever edge has more content, so the overflow is visible.
+ */
 export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="scroll-shadow w-full overflow-x-auto" tabIndex={0} role="region" aria-label="Scrollable table">
       <table className={cn("w-full caption-bottom text-sm", className)} {...props} />
     </div>
   );

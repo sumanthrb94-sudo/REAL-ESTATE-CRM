@@ -4,21 +4,18 @@
 
 import { z } from "zod";
 import { db } from "@/server/db";
-import type { Project, ProjectStatus, Tower, Unit, UnitStatus } from "@/types/domain";
+import {
+  PROJECT_STATUSES,
+  UNIT_STATUSES,
+  type Project,
+  type Tower,
+  type Unit,
+  type UnitStatus,
+} from "@/types/domain";
 
-export const PROJECT_STATUSES = [
-  "UPCOMING",
-  "ONGOING",
-  "READY_TO_MOVE",
-  "SOLD_OUT",
-] as const satisfies readonly ProjectStatus[];
-
-export const UNIT_STATUSES = [
-  "AVAILABLE",
-  "BLOCKED",
-  "BOOKED",
-  "SOLD",
-] as const satisfies readonly UnitStatus[];
+// Re-exported from types/domain, which is a pure module — client components
+// (the tower manager) need these without pulling firebase-admin into the bundle.
+export { PROJECT_STATUSES, UNIT_STATUSES } from "@/types/domain";
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
 export const projectInputSchema = z.object({
@@ -251,6 +248,224 @@ export async function updateUnitStatus(id: string, status: unknown): Promise<Uni
   const updated = await db.units.update(id, { status: parsed });
   if (!updated) throw new Error("Unit not found");
   return updated;
+}
+
+// ─── Towers ─────────────────────────────────────────────────────────────────
+export const towerInputSchema = z.object({
+  projectId: z.string().trim().min(1, "Project is required"),
+  name: z.string().trim().min(1, "Tower name is required").max(60),
+  floors: z.coerce
+    .number({ invalid_type_error: "Floors must be a number" })
+    .int("Floors must be a whole number")
+    .min(1, "A tower needs at least 1 floor")
+    .max(200, "200 floors is the maximum"),
+});
+export type TowerInput = z.infer<typeof towerInputSchema>;
+
+export async function createTower(input: unknown): Promise<Tower> {
+  const data = towerInputSchema.parse(input);
+
+  const project = await db.projects.find(data.projectId);
+  if (!project) throw new Error("Project not found");
+
+  const existing = await db.towers.list({ where: { projectId: data.projectId } });
+  if (existing.some((t) => t.name.toLowerCase() === data.name.toLowerCase())) {
+    throw new Error(`This project already has a tower called “${data.name}”.`);
+  }
+
+  return db.towers.create(data);
+}
+
+export async function updateTower(id: string, patch: unknown): Promise<Tower> {
+  const data = towerInputSchema.partial().omit({ projectId: true }).parse(patch);
+  const tower = await db.towers.find(id);
+  if (!tower) throw new Error("Tower not found");
+
+  if (data.name && data.name.toLowerCase() !== tower.name.toLowerCase()) {
+    const siblings = await db.towers.list({ where: { projectId: tower.projectId } });
+    if (siblings.some((t) => t.id !== id && t.name.toLowerCase() === data.name!.toLowerCase())) {
+      throw new Error(`This project already has a tower called “${data.name}”.`);
+    }
+  }
+
+  // Shrinking a tower below its occupied floors would orphan those units.
+  if (data.floors != null) {
+    const units = await db.units.list({ where: { towerId: id } });
+    const highest = units.reduce((max, u) => Math.max(max, u.floor), 0);
+    if (data.floors < highest) {
+      throw new Error(
+        `Cannot reduce to ${data.floors} floors — units exist up to floor ${highest}. Delete those units first.`,
+      );
+    }
+  }
+
+  const updated = await db.towers.update(id, data);
+  if (!updated) throw new Error("Tower not found");
+  return updated;
+}
+
+/** Delete a tower and every unit in it. Refuses when any unit is spoken for. */
+export async function deleteTower(id: string): Promise<{ deletedUnits: number }> {
+  const tower = await db.towers.find(id);
+  if (!tower) throw new Error("Tower not found");
+
+  const units = await db.units.list({ where: { towerId: id } });
+  const committed = units.filter((u) => u.status === "BOOKED" || u.status === "SOLD");
+  if (committed.length > 0) {
+    throw new Error(
+      `Cannot delete ${tower.name}: ${committed.length} unit(s) are booked or sold. Cancel those bookings first.`,
+    );
+  }
+
+  for (const unit of units) await db.units.delete(unit.id);
+  await db.towers.delete(id);
+  return { deletedUnits: units.length };
+}
+
+// ─── Unit creation ──────────────────────────────────────────────────────────
+export const unitInputSchema = z.object({
+  projectId: z.string().trim().min(1, "Project is required"),
+  towerId: z.string().trim().min(1, "Tower is required"),
+  unitNumber: z.string().trim().min(1, "Unit number is required").max(30),
+  floor: z.coerce.number().int().min(0, "Floor cannot be negative").max(200),
+  type: z.string().trim().min(1, "Unit type is required").max(30),
+  carpetArea: z.coerce.number().min(1, "Carpet area must be greater than zero").max(100_000),
+  builtUpArea: z.coerce.number().min(0).max(200_000).optional(),
+  facing: z.string().trim().max(30).optional(),
+  basePrice: z.coerce.number().min(0, "Price cannot be negative").max(100_000_000_000),
+  status: z.enum(UNIT_STATUSES).default("AVAILABLE"),
+});
+export type UnitInput = z.infer<typeof unitInputSchema>;
+
+async function assertUnitNumberFree(projectId: string, unitNumber: string, exceptId?: string) {
+  const siblings = await db.units.list({ where: { projectId } });
+  const clash = siblings.find(
+    (u) => u.id !== exceptId && u.unitNumber.toLowerCase() === unitNumber.toLowerCase(),
+  );
+  if (clash) throw new Error(`Unit “${unitNumber}” already exists in this project.`);
+}
+
+export async function createUnit(input: unknown): Promise<Unit> {
+  const data = unitInputSchema.parse(input);
+
+  const tower = await db.towers.find(data.towerId);
+  if (!tower) throw new Error("Tower not found");
+  if (tower.projectId !== data.projectId) throw new Error("That tower belongs to a different project.");
+  if (data.floor > tower.floors) {
+    throw new Error(`${tower.name} has ${tower.floors} floors — floor ${data.floor} is out of range.`);
+  }
+
+  await assertUnitNumberFree(data.projectId, data.unitNumber);
+  return db.units.create({ ...data, createdAt: new Date().toISOString() });
+}
+
+export async function updateUnit(id: string, patch: unknown): Promise<Unit> {
+  const data = unitInputSchema.partial().omit({ projectId: true, towerId: true }).parse(patch);
+  const unit = await db.units.find(id);
+  if (!unit) throw new Error("Unit not found");
+
+  if (data.unitNumber && data.unitNumber.toLowerCase() !== unit.unitNumber.toLowerCase()) {
+    await assertUnitNumberFree(unit.projectId, data.unitNumber, id);
+  }
+
+  const updated = await db.units.update(id, data);
+  if (!updated) throw new Error("Unit not found");
+  return updated;
+}
+
+export async function deleteUnit(id: string): Promise<void> {
+  const unit = await db.units.find(id);
+  if (!unit) throw new Error("Unit not found");
+  if (unit.status === "BOOKED" || unit.status === "SOLD") {
+    throw new Error(`Unit ${unit.unitNumber} is ${unit.status.toLowerCase()} — cancel the booking first.`);
+  }
+  await db.units.delete(id);
+}
+
+// ─── Bulk generation ────────────────────────────────────────────────────────
+export const bulkUnitsSchema = z
+  .object({
+    towerId: z.string().trim().min(1, "Tower is required"),
+    fromFloor: z.coerce.number().int().min(0).max(200),
+    toFloor: z.coerce.number().int().min(0).max(200),
+    unitsPerFloor: z.coerce
+      .number()
+      .int()
+      .min(1, "At least 1 unit per floor")
+      .max(20, "20 units per floor is the maximum"),
+    type: z.string().trim().min(1, "Unit type is required").max(30),
+    carpetArea: z.coerce.number().min(1, "Carpet area must be greater than zero"),
+    builtUpArea: z.coerce.number().min(0).optional(),
+    facing: z.string().trim().max(30).optional(),
+    /** Price per sq ft of carpet area; basePrice = rate x carpetArea. */
+    ratePerSqFt: z.coerce.number().min(1, "Rate must be greater than zero"),
+  })
+  .refine((v) => v.toFloor >= v.fromFloor, {
+    message: "The last floor must be the same as or above the first floor",
+    path: ["toFloor"],
+  });
+export type BulkUnitsInput = z.infer<typeof bulkUnitsSchema>;
+
+/**
+ * Generate a floor grid in one go: the usual way a tower's inventory gets
+ * entered. Unit numbers follow the local convention `<Tower><Floor><NN>` —
+ * e.g. tower "A", floor 12, second unit becomes "A-1202".
+ *
+ * Refuses entirely if any generated number would collide, rather than
+ * creating a partial grid the user then has to unpick.
+ */
+export async function bulkCreateUnits(input: unknown): Promise<{ created: number }> {
+  const data = bulkUnitsSchema.parse(input);
+
+  const tower = await db.towers.find(data.towerId);
+  if (!tower) throw new Error("Tower not found");
+  if (data.toFloor > tower.floors) {
+    throw new Error(`${tower.name} has ${tower.floors} floors — floor ${data.toFloor} is out of range.`);
+  }
+
+  const prefix = tower.name.replace(/^tower\s+/i, "").trim() || tower.name;
+  const existing = await db.units.list({ where: { projectId: tower.projectId } });
+  const taken = new Set(existing.map((u) => u.unitNumber.toLowerCase()));
+
+  const planned: Array<Omit<Unit, "id">> = [];
+  const clashes: string[] = [];
+  const now = new Date().toISOString();
+
+  for (let floor = data.fromFloor; floor <= data.toFloor; floor++) {
+    for (let n = 1; n <= data.unitsPerFloor; n++) {
+      const unitNumber = `${prefix}-${floor}${String(n).padStart(2, "0")}`;
+      if (taken.has(unitNumber.toLowerCase())) {
+        clashes.push(unitNumber);
+        continue;
+      }
+      taken.add(unitNumber.toLowerCase());
+      planned.push({
+        projectId: tower.projectId,
+        towerId: tower.id,
+        unitNumber,
+        floor,
+        type: data.type,
+        carpetArea: data.carpetArea,
+        builtUpArea: data.builtUpArea,
+        facing: data.facing,
+        basePrice: Math.round(data.carpetArea * data.ratePerSqFt),
+        status: "AVAILABLE",
+        createdAt: now,
+      });
+    }
+  }
+
+  if (clashes.length > 0) {
+    const shown = clashes.slice(0, 5).join(", ");
+    throw new Error(
+      `${clashes.length} unit number(s) already exist (${shown}${clashes.length > 5 ? "…" : ""}). ` +
+        "Nothing was created — pick a different floor range or rename the tower.",
+    );
+  }
+  if (planned.length === 0) throw new Error("That range produced no units.");
+
+  for (const unit of planned) await db.units.create(unit);
+  return { created: planned.length };
 }
 
 // ─── Stats ──────────────────────────────────────────────────────────────────

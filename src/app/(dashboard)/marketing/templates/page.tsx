@@ -5,11 +5,11 @@
 import { PageHeader } from "@/components/ui/misc";
 import { TemplateLibrary } from "@/components/marketing/template-library";
 import { can } from "@/server/auth/rbac";
-import { getCurrentUser } from "@/server/auth/session";
+import { requirePermission } from "@/server/auth/guard";
 import { listTemplates } from "@/server/modules/marketing";
 
 export default async function TemplatesPage() {
-  const [user, templates] = await Promise.all([getCurrentUser(), listTemplates()]);
+  const [user, templates] = await Promise.all([requirePermission("marketing.read"), listTemplates()]);
   const canWrite = can(user.role, "marketing.write");
 
   return (

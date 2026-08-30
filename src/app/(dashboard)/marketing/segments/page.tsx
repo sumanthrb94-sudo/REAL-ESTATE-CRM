@@ -6,12 +6,12 @@ import { Filter, Users } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/ui/misc";
 import { SegmentsView, type SegmentWithAudience } from "@/components/marketing/segments-view";
 import { can } from "@/server/auth/rbac";
-import { getCurrentUser } from "@/server/auth/session";
+import { requirePermission } from "@/server/auth/guard";
 import { evaluateSegment, listSegments } from "@/server/modules/marketing";
 import { formatNumber } from "@/lib/utils";
 
 export default async function SegmentsPage() {
-  const [user, segments] = await Promise.all([getCurrentUser(), listSegments()]);
+  const [user, segments] = await Promise.all([requirePermission("marketing.read"), listSegments()]);
   const canWrite = can(user.role, "marketing.write");
 
   const evaluated: SegmentWithAudience[] = await Promise.all(

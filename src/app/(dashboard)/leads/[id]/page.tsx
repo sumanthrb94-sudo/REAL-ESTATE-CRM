@@ -23,8 +23,9 @@ import { ActivityForm } from "@/components/leads/activity-form";
 import { OwnerSelect } from "@/components/leads/owner-select";
 import { StatusSelect } from "@/components/leads/status-select";
 import { can } from "@/server/auth/rbac";
-import { getCurrentUser, listAssignableUsers } from "@/server/auth/session";
-import { getLeadDetail } from "@/server/modules/leads";
+import { requirePermission } from "@/server/auth/guard";
+import { listAssignableUsers } from "@/server/auth/session";
+import { canViewLead, getLeadDetail } from "@/server/modules/leads";
 import type { ActivityType, LeadTemperature } from "@/types/domain";
 import { formatDate, formatDateTime, formatINR, humanize } from "@/lib/utils";
 
@@ -45,11 +46,14 @@ const temperatureTone = (t: LeadTemperature) =>
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [user, detail, assignable] = await Promise.all([
-    getCurrentUser(),
+    requirePermission("lead.read"),
     getLeadDetail(id),
     listAssignableUsers(),
   ]);
   if (!detail) notFound();
+  // Row-level scope: an agent may hold lead.read and still not own this lead.
+  // 404 rather than 403 — revealing that the record exists is itself a leak.
+  if (!(await canViewLead(user, detail.lead))) notFound();
 
   const { lead, activities, siteVisits, owner, project, activityUsers } = detail;
   const canWrite = can(user.role, "lead.write");

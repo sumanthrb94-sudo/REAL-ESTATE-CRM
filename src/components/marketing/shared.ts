@@ -3,6 +3,7 @@
 // the marketing service layer and client widgets without bundling the data layer.
 
 import type { CampaignChannel, CampaignStatus, Lead } from "@/types/domain";
+import { fieldLabel, humanize } from "@/lib/utils";
 
 // ─── Merge tags ─────────────────────────────────────────────────────────────
 export const MERGE_TAGS = ["name", "project", "date", "phone"] as const;
@@ -75,7 +76,7 @@ export interface SegmentFieldDef {
 
 export const SEGMENT_FIELDS: SegmentFieldDef[] = [
   { field: "status", label: "Status", kind: "enum", options: ["NEW", "CONTACTED", "QUALIFIED", "SITE_VISIT_SCHEDULED", "SITE_VISIT_DONE", "NEGOTIATION", "BOOKED", "LOST"] },
-  { field: "source", label: "Source", kind: "enum", options: ["WEBSITE", "PORTAL_99ACRES", "PORTAL_MAGICBRICKS", "PORTAL_HOUSING", "FACEBOOK", "GOOGLE_ADS", "WALK_IN", "REFERRAL", "CHANNEL_PARTNER", "CALL_CENTER", "OTHER"] },
+  { field: "source", label: "Source", kind: "enum", options: ["INSTAGRAM", "WEBSITE", "PORTAL_99ACRES", "PORTAL_MAGICBRICKS", "PORTAL_HOUSING", "FACEBOOK", "GOOGLE_ADS", "WALK_IN", "REFERRAL", "CHANNEL_PARTNER", "CALL_CENTER", "OTHER"] },
   { field: "temperature", label: "Temperature", kind: "enum", options: ["HOT", "WARM", "COLD"] },
   { field: "score", label: "Score", kind: "number" },
   { field: "budgetMin", label: "Budget Min (₹)", kind: "number" },
@@ -121,4 +122,39 @@ export function formatFilterValue(value: unknown): string {
   if (Array.isArray(value)) return value.map(String).join(", ");
   if (value == null) return "—";
   return String(value);
+}
+
+/** Fields whose values are rupee amounts and should be formatted as such. */
+const CURRENCY_FIELDS: ReadonlySet<string> = new Set(["budgetMin", "budgetMax"]);
+
+/**
+ * Render a whole filter as a sentence for the segment chips.
+ *
+ * These chips used to read "Budgetmax is at least 20000000" — the raw field
+ * name run through title-casing, and an unformatted integer. Field labels now
+ * come from SEGMENT_FIELDS, enum values are humanized, and rupee amounts go
+ * through formatINR.
+ */
+export function describeFilter(
+  filter: { field: string; op: SegmentOp; value: unknown },
+  formatCurrency: (n: number) => string,
+): string {
+  const def = SEGMENT_FIELDS.find((f) => f.field === filter.field);
+  const label = def?.label ?? fieldLabel(filter.field);
+
+  const renderOne = (v: unknown): string => {
+    if (CURRENCY_FIELDS.has(filter.field) && typeof v === "number") return formatCurrency(v);
+    // Enum values are stored as SCREAMING_SNAKE; show them the way the rest of
+    // the UI does.
+    if (def?.kind === "enum" && typeof v === "string") return humanize(v);
+    return String(v);
+  };
+
+  const value = Array.isArray(filter.value)
+    ? filter.value.map(renderOne).join(", ")
+    : filter.value == null
+      ? "—"
+      : renderOne(filter.value);
+
+  return `${label} ${OP_LABELS[filter.op]} ${value}`;
 }

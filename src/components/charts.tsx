@@ -72,15 +72,22 @@ export function CategoryBarChart({
 
 export function DonutChart({
   data,
+  colors,
 }: {
   data: { name: string; value: number }[];
+  /**
+   * Optional colour per slice name. Pass this when the same categories are
+   * also drawn elsewhere on the page — the unit matrix and this donut used to
+   * colour Available differently and contradict each other.
+   */
+  colors?: Record<string, string>;
 }) {
   return (
     <ResponsiveContainer width="100%" height={280}>
       <PieChart>
         <Pie data={data} dataKey="value" nameKey="name" innerRadius={60} outerRadius={100} paddingAngle={2}>
-          {data.map((_, i) => (
-            <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+          {data.map((slice, i) => (
+            <Cell key={i} fill={colors?.[slice.name] ?? PALETTE[i % PALETTE.length]} />
           ))}
         </Pie>
         <Tooltip />

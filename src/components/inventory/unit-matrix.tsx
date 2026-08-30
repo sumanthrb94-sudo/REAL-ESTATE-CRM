@@ -5,22 +5,16 @@ import { Badge, statusTone } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { UnitStatusSelect } from "@/components/inventory/unit-status-select";
 import { cn, formatINR, formatNumber, humanize } from "@/lib/utils";
+import { UNIT_STATUS_CHIP, UNIT_STATUS_SWATCH } from "@/lib/status-colors";
 import type { Unit, UnitStatus } from "@/types/domain";
 import type { TowerGroup } from "@/server/modules/inventory";
 
-const STATUS_CHIP: Record<UnitStatus, string> = {
-  AVAILABLE: "border-success/40 bg-success/15 text-success hover:bg-success/30",
-  BLOCKED: "border-warning/40 bg-warning/15 text-warning hover:bg-warning/30",
-  BOOKED: "border-primary/40 bg-primary/15 text-primary hover:bg-primary/25",
-  SOLD: "border-border bg-muted text-muted-foreground hover:bg-muted/70",
-};
+// Colours come from lib/status-colors so the donut on the same page agrees.
+const STATUS_CHIP = UNIT_STATUS_CHIP;
 
-const LEGEND: { status: UnitStatus; swatch: string }[] = [
-  { status: "AVAILABLE", swatch: "bg-success/60" },
-  { status: "BLOCKED", swatch: "bg-warning/60" },
-  { status: "BOOKED", swatch: "bg-primary/60" },
-  { status: "SOLD", swatch: "bg-muted-foreground/40" },
-];
+const LEGEND: { status: UnitStatus; swatch: string }[] = (
+  ["AVAILABLE", "BLOCKED", "BOOKED", "SOLD"] as UnitStatus[]
+).map((status) => ({ status, swatch: UNIT_STATUS_SWATCH[status] }));
 
 export function UnitMatrix({
   towers,

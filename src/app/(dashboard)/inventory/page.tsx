@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState, PageHeader, StatCard } from "@/components/ui/misc";
 import { ProjectForm } from "@/components/inventory/project-form";
 import { can } from "@/server/auth/rbac";
-import { getCurrentUser } from "@/server/auth/session";
+import { requirePermission } from "@/server/auth/guard";
 import {
   listProjectCities,
   listProjects,
@@ -91,7 +91,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Se
   const status = PROJECT_STATUSES.find((s) => s === statusParam);
 
   const [user, summaries, cities] = await Promise.all([
-    getCurrentUser(),
+    requirePermission("inventory.read"),
     listProjects({ city, status }),
     listProjectCities(),
   ]);

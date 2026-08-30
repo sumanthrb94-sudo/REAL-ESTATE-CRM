@@ -10,8 +10,8 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { VisitActions } from "@/components/leads/visit-actions";
 import { VisitForm } from "@/components/leads/visit-form";
 import { can } from "@/server/auth/rbac";
-import { getCurrentUser } from "@/server/auth/session";
-import { getLeadFormOptions, listLeads } from "@/server/modules/leads";
+import { requirePermission, visibleOwnerIds } from "@/server/auth/guard";
+import { getLeadFormOptions, listLeads, teamMemberIds } from "@/server/modules/leads";
 import { listSiteVisits, type SiteVisitListItem } from "@/server/modules/site-visits";
 import { formatDateTime, humanize } from "@/lib/utils";
 
@@ -73,12 +73,18 @@ function VisitTable({ visits, canWrite }: { visits: SiteVisitListItem[]; canWrit
 }
 
 export default async function SiteVisitsPage() {
-  const [user, visits, leads, options] = await Promise.all([
-    getCurrentUser(),
+  const user = await requirePermission("lead.read");
+  const ownerScope = await visibleOwnerIds(user, () => teamMemberIds(user));
+
+  const [allVisits, leads, options] = await Promise.all([
     listSiteVisits(),
-    listLeads(),
+    listLeads({ ownerScope }),
     getLeadFormOptions(),
   ]);
+  // Agents and managers see only visits for the leads they can see.
+  const visibleLeadIds = new Set(leads.map((l) => l.id));
+  const visits = ownerScope ? allVisits.filter((v) => visibleLeadIds.has(v.leadId)) : allVisits;
+
   const canWrite = can(user.role, "lead.write");
 
   const now = Date.now();

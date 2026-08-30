@@ -11,10 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/misc";
 import { Avatar } from "@/components/ui/misc";
-import { formatDate, formatNumber, humanize } from "@/lib/utils";
+import { formatDate, formatINR, formatNumber, humanize } from "@/lib/utils";
 import { deleteSegmentAction } from "@/server/modules/marketing.actions";
 import { SegmentBuilder } from "@/components/marketing/segment-builder";
-import { OP_LABELS, formatFilterValue } from "@/components/marketing/shared";
+import { describeFilter } from "@/components/marketing/shared";
 import type { Segment } from "@/types/domain";
 
 export interface SegmentWithAudience {
@@ -95,7 +95,7 @@ export function SegmentsView({
                 <div className="flex flex-wrap gap-1.5">
                   {segment.filters.map((f, i) => (
                     <Badge key={i} tone="muted">
-                      {humanize(String(f.field))} {OP_LABELS[f.op]} {formatFilterValue(f.value)}
+                      {describeFilter({ field: String(f.field), op: f.op, value: f.value }, formatINR)}
                     </Badge>
                   ))}
                 </div>

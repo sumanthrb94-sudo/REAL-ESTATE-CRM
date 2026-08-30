@@ -9,7 +9,7 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { RuleForm } from "@/components/leads/rule-form";
 import { RuleToggle } from "@/components/leads/rule-toggle";
 import { can } from "@/server/auth/rbac";
-import { getCurrentUser } from "@/server/auth/session";
+import { requirePermission } from "@/server/auth/guard";
 import {
   DISTRIBUTION_STRATEGIES,
   listRules,
@@ -20,7 +20,7 @@ import { formatDate, humanize } from "@/lib/utils";
 
 export default async function DistributionPage() {
   const [user, rules, options] = await Promise.all([
-    getCurrentUser(),
+    requirePermission("lead.assign"),
     listRules(),
     getLeadFormOptions(),
   ]);

@@ -12,6 +12,16 @@ export type Role =
   | "CHANNEL_PARTNER"
   | "VIEWER";
 
+export const ROLES: Role[] = [
+  "ADMIN",
+  "SALES_HEAD",
+  "SALES_MANAGER",
+  "SALES_AGENT",
+  "MARKETING",
+  "CHANNEL_PARTNER",
+  "VIEWER",
+];
+
 export interface User {
   id: string;
   name: string;
@@ -21,9 +31,21 @@ export interface User {
   avatarUrl?: string;
   active: boolean;
   teamId?: string;
+  /**
+   * Scrypt hash of the user's password, in the format produced by
+   * `hashPassword()` in server/auth/password.ts. Never sent to the client —
+   * strip it with `publicUser()` before returning a User across the boundary.
+   */
+  passwordHash?: string;
+  /** Set when an admin resets the password; forces a change on next sign-in. */
+  mustChangePassword?: boolean;
+  lastLoginAt?: string;
   createdAt: string;
   updatedAt: string;
 }
+
+/** A User with secrets removed — safe to pass to client components. */
+export type PublicUser = Omit<User, "passwordHash">;
 
 export interface Team {
   id: string;
@@ -56,6 +78,7 @@ export const LEAD_STATUSES: LeadStatus[] = [
 ];
 
 export type LeadSource =
+  | "INSTAGRAM"
   | "WEBSITE"
   | "PORTAL_99ACRES"
   | "PORTAL_MAGICBRICKS"
@@ -69,6 +92,7 @@ export type LeadSource =
   | "OTHER";
 
 export const LEAD_SOURCES: LeadSource[] = [
+  "INSTAGRAM",
   "WEBSITE",
   "PORTAL_99ACRES",
   "PORTAL_MAGICBRICKS",
@@ -169,6 +193,13 @@ export interface AssignmentRule {
 // ─── Inventory ───────────────────────────────────────────────────────────
 export type ProjectStatus = "UPCOMING" | "ONGOING" | "READY_TO_MOVE" | "SOLD_OUT";
 
+export const PROJECT_STATUSES = [
+  "UPCOMING",
+  "ONGOING",
+  "READY_TO_MOVE",
+  "SOLD_OUT",
+] as const satisfies readonly ProjectStatus[];
+
 export interface Project {
   id: string;
   name: string;
@@ -192,6 +223,13 @@ export interface Tower {
 }
 
 export type UnitStatus = "AVAILABLE" | "BLOCKED" | "BOOKED" | "SOLD";
+
+export const UNIT_STATUSES = [
+  "AVAILABLE",
+  "BLOCKED",
+  "BOOKED",
+  "SOLD",
+] as const satisfies readonly UnitStatus[];
 
 export interface Unit {
   id: string;

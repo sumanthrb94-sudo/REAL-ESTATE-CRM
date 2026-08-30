@@ -4,12 +4,17 @@
 //   memory   (default) — seeded in-memory store, zero config
 //   firebase           — Firestore via the Admin SDK (requires FIREBASE_* env vars)
 
+import { hashPasswordSync } from "@/server/auth/password";
 import { createFirestoreStore } from "./firebase";
 import { createMemoryStore } from "./memory-store";
-import { buildSeed } from "./seed";
+import { buildSeed, BOOTSTRAP_PASSWORD } from "./seed";
 import type { DataStore } from "./store";
 
 const globalForDb = globalThis as unknown as { __estateDb?: DataStore };
+
+function memoryStore(): DataStore {
+  return createMemoryStore(buildSeed(hashPasswordSync(BOOTSTRAP_PASSWORD)));
+}
 
 function init(): DataStore {
   const driver = process.env.DATA_DRIVER ?? "memory";
@@ -19,19 +24,31 @@ function init(): DataStore {
       // so memory-mode deploys are unaffected (and need no Firebase creds).
       return createFirestoreStore();
     case "prisma":
-      // TODO: return new PrismaStore() once DATABASE_URL is configured.
-      console.warn("[db] DATA_DRIVER=prisma not yet wired; using in-memory store.");
-      return createMemoryStore(buildSeed());
+      throw new Error(
+        "DATA_DRIVER=prisma is not implemented. Use `memory` (ephemeral) or `firebase` (durable). " +
+          "Silently falling back to memory would look like it worked and then lose every write.",
+      );
     case "memory":
+      return memoryStore();
     default:
-      return createMemoryStore(buildSeed());
+      throw new Error(
+        `Unknown DATA_DRIVER "${driver}". Valid values are "memory" or "firebase".`,
+      );
   }
 }
 
 export const db: DataStore = globalForDb.__estateDb ?? init();
 
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.__estateDb = db;
-}
+// Cache on globalThis in EVERY environment, not just development.
+//
+// Next.js bundles server code per route, so this module is instantiated more
+// than once inside a single process. Without a shared handle, each route got
+// its own in-memory store: signing in on one route and reading the session on
+// another saw two different databases, and writes appeared to vanish.
+//
+// This makes `memory` coherent within one process. It still cannot be coherent
+// ACROSS processes — separate serverless instances each hold their own copy —
+// which is why anything with real data belongs on DATA_DRIVER=firebase.
+globalForDb.__estateDb = db;
 
 export type { DataStore } from "./store";

@@ -5,6 +5,7 @@
 
 import { z } from "zod";
 import { db } from "@/server/db";
+import { visibleOwnerIds } from "@/server/auth/guard";
 import {
   LEAD_SOURCES,
   LEAD_STATUSES,
@@ -141,17 +142,35 @@ export function computeLeadScore(
 }
 
 // ─── Queries ────────────────────────────────────────────────────────────────
+
+/** Sentinel accepted in the ownerId filter to mean "leads with no owner". */
+export const UNASSIGNED = "__none__";
+
 export interface LeadFilters {
   status?: LeadStatus;
   source?: LeadSource;
   temperature?: LeadTemperature;
+  /** User-chosen filter. Pass UNASSIGNED for leads with no owner. */
   ownerId?: string;
   search?: string;
+  /**
+   * Server-imposed row-level scope. When set, only leads owned by one of these
+   * ids are returned, whatever `ownerId` asks for. Callers get this from
+   * `visibleOwnerIds()`; it is never derived from user input.
+   */
+  ownerScope?: string[];
 }
 
 export interface LeadListItem extends Lead {
   owner: User | null;
   project: Project | null;
+}
+
+/** The set of user ids a manager may see: their team, plus themselves. */
+export async function teamMemberIds(user: User): Promise<string[]> {
+  if (!user.teamId) return [user.id];
+  const users = await db.users.list({ where: { teamId: user.teamId } });
+  return [...new Set([user.id, ...users.map((u) => u.id)])];
 }
 
 export async function listLeads(filters: LeadFilters = {}): Promise<LeadListItem[]> {
@@ -167,10 +186,18 @@ export async function listLeads(filters: LeadFilters = {}): Promise<LeadListItem
 
   return leads
     .filter((l) => {
+      // Row-level scope first — it outranks every user-supplied filter.
+      if (filters.ownerScope && !(l.ownerId != null && filters.ownerScope.includes(l.ownerId))) {
+        return false;
+      }
       if (filters.status && l.status !== filters.status) return false;
       if (filters.source && l.source !== filters.source) return false;
       if (filters.temperature && l.temperature !== filters.temperature) return false;
-      if (filters.ownerId && l.ownerId !== filters.ownerId) return false;
+      if (filters.ownerId === UNASSIGNED) {
+        if (l.ownerId) return false;
+      } else if (filters.ownerId && l.ownerId !== filters.ownerId) {
+        return false;
+      }
       if (q) {
         const haystack = `${l.name} ${l.phone} ${l.email ?? ""}`.toLowerCase();
         if (!haystack.includes(q)) return false;
@@ -182,6 +209,13 @@ export async function listLeads(filters: LeadFilters = {}): Promise<LeadListItem
       owner: l.ownerId ? (userById.get(l.ownerId) ?? null) : null,
       project: l.projectId ? (projectById.get(l.projectId) ?? null) : null,
     }));
+}
+
+/** True when `user` is allowed to open this specific lead. */
+export async function canViewLead(user: User, lead: Lead): Promise<boolean> {
+  const scope = await visibleOwnerIds(user, () => teamMemberIds(user));
+  if (!scope) return true;
+  return lead.ownerId != null && scope.includes(lead.ownerId);
 }
 
 export async function getLead(id: string): Promise<Lead | null> {

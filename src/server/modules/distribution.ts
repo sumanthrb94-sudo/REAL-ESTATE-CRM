@@ -237,3 +237,52 @@ export async function autoAssign(lead: Lead): Promise<AssignmentOutcome | null> 
 
   return null;
 }
+
+/**
+ * Batch variant of autoAssign for bulk operations such as CSV import.
+ *
+ * autoAssign() re-reads the rule set, the assignable pool and every lead on
+ * each call, which is fine for one lead and quadratic for a thousand. This
+ * loads that context once and keeps the round-robin cursor and the
+ * load-balancing counts moving across the batch, so an import spreads leads
+ * the same way a stream of individual creates would.
+ *
+ * Returns a map of leadId → ownerId for the leads that matched a rule.
+ */
+export async function autoAssignMany(leads: Lead[]): Promise<Map<string, string>> {
+  const assignments = new Map<string, string>();
+  if (leads.length === 0) return assignments;
+
+  const [rules, pool, allLeads] = await Promise.all([
+    db.assignmentRules.list({ where: { active: true } }),
+    listAssignableUsers(),
+    db.leads.list(),
+  ]);
+  if (pool.length === 0) return assignments;
+
+  const openLeadCounts = new Map<string, number>();
+  for (const l of allLeads) {
+    if (!l.ownerId || l.status === "BOOKED" || l.status === "LOST") continue;
+    openLeadCounts.set(l.ownerId, (openLeadCounts.get(l.ownerId) ?? 0) + 1);
+  }
+
+  const ordered = rules
+    .slice()
+    .sort((a, b) => b.priority - a.priority || a.createdAt.localeCompare(b.createdAt));
+
+  for (const lead of leads) {
+    for (const rule of ordered) {
+      if (!ruleMatches(rule, lead)) continue;
+      const user = resolveAssignee(rule, pool, openLeadCounts);
+      if (!user) continue;
+
+      assignments.set(lead.id, user.id);
+      // Count this lead against the winner so the next iteration balances
+      // against it, rather than handing the whole batch to one agent.
+      openLeadCounts.set(user.id, (openLeadCounts.get(user.id) ?? 0) + 1);
+      break;
+    }
+  }
+
+  return assignments;
+}

@@ -1,7 +1,7 @@
 // EstateCRM — /leads. Filterable, searchable leads table with inline creation.
 
 import Link from "next/link";
-import { Flame, IndianRupee, UserPlus, Users } from "lucide-react";
+import { Flame, IndianRupee, Upload, UserPlus, Users } from "lucide-react";
 import { Badge, statusTone } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, EmptyState, PageHeader, StatCard } from "@/components/ui/misc";
@@ -9,8 +9,13 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { LeadFilters } from "@/components/leads/lead-filters";
 import { LeadForm } from "@/components/leads/lead-form";
 import { can } from "@/server/auth/rbac";
-import { getCurrentUser } from "@/server/auth/session";
-import { getLeadFormOptions, listLeads, type LeadFilters as Filters } from "@/server/modules/leads";
+import { requirePermission, visibleOwnerIds } from "@/server/auth/guard";
+import {
+  getLeadFormOptions,
+  listLeads,
+  teamMemberIds,
+  type LeadFilters as Filters,
+} from "@/server/modules/leads";
 import {
   LEAD_SOURCES,
   LEAD_STATUSES,
@@ -39,19 +44,20 @@ export default async function LeadsPage({
   const source = first(params.source);
   const temperature = first(params.temperature);
 
+  const user = await requirePermission("lead.read");
+
   const filters: Filters = {
     status: LEAD_STATUSES.includes(status as LeadStatus) ? (status as LeadStatus) : undefined,
     source: LEAD_SOURCES.includes(source as LeadSource) ? (source as LeadSource) : undefined,
     temperature: TEMPS.includes(temperature as LeadTemperature) ? (temperature as LeadTemperature) : undefined,
-    ownerId: first(params.owner),
+    ownerId: first(params.owner) ?? first(params.ownerId),
     search: first(params.q),
+    // Row-level scope, imposed by role — an agent cannot widen it with a query
+    // parameter because this overrides `ownerId` inside listLeads().
+    ownerScope: await visibleOwnerIds(user, () => teamMemberIds(user)),
   };
 
-  const [user, leads, options] = await Promise.all([
-    getCurrentUser(),
-    listLeads(filters),
-    getLeadFormOptions(),
-  ]);
+  const [leads, options] = await Promise.all([listLeads(filters), getLeadFormOptions()]);
   const canWrite = can(user.role, "lead.write");
   const canAssign = can(user.role, "lead.assign");
 
@@ -70,7 +76,16 @@ export default async function LeadsPage({
         title="Leads"
         description="Capture, qualify and work every enquiry from first touch to booking."
         actions={
-          canWrite ? undefined : <Badge tone="muted">Read-only access</Badge>
+          canWrite ? (
+            <Link
+              href="/leads/import"
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-input bg-card px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              <Upload className="h-4 w-4" /> Import CSV
+            </Link>
+          ) : (
+            <Badge tone="muted">Read-only access</Badge>
+          )
         }
       />
 
