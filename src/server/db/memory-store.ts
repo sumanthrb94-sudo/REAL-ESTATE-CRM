@@ -63,6 +63,18 @@ export class InMemoryRepository<T extends { id: string }> implements Repository<
     return row;
   }
 
+  async createMany(rows: Array<Omit<T, "id"> & { id?: string }>): Promise<T[]> {
+    const created: T[] = [];
+    for (const row of rows) created.push(await this.create(row));
+    return created;
+  }
+
+  async deleteMany(ids: string[]): Promise<number> {
+    let n = 0;
+    for (const id of ids) if (this.data.delete(id)) n++;
+    return n;
+  }
+
   async update(id: string, patch: Partial<T>): Promise<T | null> {
     const existing = this.data.get(id);
     if (!existing) return null;

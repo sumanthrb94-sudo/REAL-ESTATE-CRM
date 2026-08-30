@@ -317,7 +317,7 @@ export async function deleteTower(id: string): Promise<{ deletedUnits: number }>
     );
   }
 
-  for (const unit of units) await db.units.delete(unit.id);
+  await db.units.deleteMany(units.map((u) => u.id));
   await db.towers.delete(id);
   return { deletedUnits: units.length };
 }
@@ -464,8 +464,8 @@ export async function bulkCreateUnits(input: unknown): Promise<{ created: number
   }
   if (planned.length === 0) throw new Error("That range produced no units.");
 
-  for (const unit of planned) await db.units.create(unit);
-  return { created: planned.length };
+  const created = await db.units.createMany(planned);
+  return { created: created.length };
 }
 
 // ─── Stats ──────────────────────────────────────────────────────────────────

@@ -34,8 +34,19 @@ export interface Repository<T extends { id: string }> {
   find(id: string): Promise<T | null>;
   findOne(where: Partial<Record<keyof T, unknown>>): Promise<T | null>;
   create(data: Omit<T, "id"> & { id?: string }): Promise<T>;
+  /**
+   * Create many rows in as few round trips as the backend allows.
+   *
+   * Bulk paths (generating a tower's floor grid, importing a CSV) were creating
+   * rows one at a time. Against the in-memory store that is free; against
+   * Firestore it is one network round trip per row — 48 units became 48
+   * sequential trips to the region, which is slow enough to look broken.
+   */
+  createMany(rows: Array<Omit<T, "id"> & { id?: string }>): Promise<T[]>;
   update(id: string, patch: Partial<T>): Promise<T | null>;
   delete(id: string): Promise<boolean>;
+  /** Delete many rows by id, batched the same way as createMany. */
+  deleteMany(ids: string[]): Promise<number>;
 }
 
 export interface DataStore {

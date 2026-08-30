@@ -65,6 +65,9 @@ export function getDb(): Firestore {
 }
 
 // ─── Generic repository ─────────────────────────────────────────────────────
+/** Firestore allows at most 500 operations per batch; stay under it. */
+const BATCH_LIMIT = 450;
+
 function genId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -140,6 +143,38 @@ export class FirestoreRepository<T extends { id: string }> implements Repository
     const row = { ...data, id } as T;
     await this.col().doc(id).set(row as FirebaseFirestore.DocumentData);
     return row;
+  }
+
+  /**
+   * Batched creates. Firestore caps a batch at 500 operations, so chunk below
+   * that. One round trip per chunk instead of one per row.
+   */
+  async createMany(rows: Array<Omit<T, "id"> & { id?: string }>): Promise<T[]> {
+    const created: T[] = [];
+    for (let i = 0; i < rows.length; i += BATCH_LIMIT) {
+      const chunk = rows.slice(i, i + BATCH_LIMIT);
+      const batch = this.db.batch();
+      for (const data of chunk) {
+        const id = data.id ?? genId(this.idPrefix);
+        const row = { ...data, id } as T;
+        batch.set(this.col().doc(id), row as FirebaseFirestore.DocumentData);
+        created.push(row);
+      }
+      await batch.commit();
+    }
+    return created;
+  }
+
+  async deleteMany(ids: string[]): Promise<number> {
+    let deleted = 0;
+    for (let i = 0; i < ids.length; i += BATCH_LIMIT) {
+      const chunk = ids.slice(i, i + BATCH_LIMIT);
+      const batch = this.db.batch();
+      for (const id of chunk) batch.delete(this.col().doc(id));
+      await batch.commit();
+      deleted += chunk.length;
+    }
+    return deleted;
   }
 
   async update(id: string, patch: Partial<T>): Promise<T | null> {

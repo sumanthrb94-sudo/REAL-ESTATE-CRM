@@ -18,6 +18,18 @@ function memoryStore(): DataStore {
 
 function init(): DataStore {
   const driver = process.env.DATA_DRIVER ?? "memory";
+
+  // Say which backend is in use at boot. Silence here is expensive: a
+  // misconfigured deployment falls back to `memory` and looks like it works
+  // until the first restart drops every write.
+  console.log(
+    `[db] driver=${driver}` +
+      (driver === "firebase"
+        ? ` project=${process.env.FIREBASE_PROJECT_ID ?? "(unset)"}` +
+          (process.env.FIRESTORE_EMULATOR_HOST ? ` emulator=${process.env.FIRESTORE_EMULATOR_HOST}` : "")
+        : " (NOT durable — writes are lost on restart)"),
+  );
+
   switch (driver) {
     case "firebase":
       // firebase-admin is loaded but does not connect until getDb() is called,

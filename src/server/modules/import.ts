@@ -388,18 +388,18 @@ export async function commitImport(
 
   const { prepared, errors } = await prepare(headers, rows, mapping, skipDuplicates);
 
-  // Write first, then assign in one batch — autoAssignMany loads the rule set
-  // and workload snapshot once instead of per lead.
-  const saved: Lead[] = [];
-  for (const item of prepared) {
-    try {
-      saved.push(await db.leads.create({ ...item.lead, score: scoreImported(item.lead) }));
-    } catch (e) {
-      errors.push({
-        row: item.rowNumber,
-        message: e instanceof Error ? e.message : "Could not be saved",
-      });
-    }
+  // One batched write for the whole file, then one batched assignment pass —
+  // autoAssignMany loads the rule set and workload snapshot once instead of
+  // per lead. Row-level errors are reported without failing the import.
+  let saved: Lead[] = [];
+  try {
+    saved = await db.leads.createMany(
+      prepared.map((item) => ({ ...item.lead, score: scoreImported(item.lead) })),
+    );
+  } catch (e) {
+    throw new Error(
+      `Could not save the imported leads: ${e instanceof Error ? e.message : "unknown error"}`,
+    );
   }
 
   const assignments = await autoAssignMany(saved);
