@@ -127,19 +127,21 @@ export async function quickLogAction(
   const lead = await getLead(leadId);
   if (!lead) return { error: "Lead not found" };
 
-  const labels: Record<typeof type, string> = {
-    CALL: "Outbound call",
-    EMAIL: "Email sent",
-    WHATSAPP: "WhatsApp message sent",
-    SMS: "SMS sent",
+  // These record a touch the salesperson made themselves — the app does not
+  // dial or send. "Email sent to <name>" read as though the system had
+  // despatched something, which is what confused a real user reading the
+  // timeline. Each phrase is written out in full so the grammar holds.
+  const describe: Record<typeof type, (name: string) => string> = {
+    CALL: (name) => `Called ${name}`,
+    EMAIL: (name) => `Emailed ${name}`,
+    WHATSAPP: (name) => `WhatsApp message to ${name}`,
+    SMS: (name) => `SMS to ${name}`,
   };
-  const result = await addActivity(
-    leadId,
-    { type, subject: `${labels[type]} to ${lead.name}`, completed: true },
-    user.id,
-  );
+  const subject = describe[type](lead.name);
+
+  const result = await addActivity(leadId, { type, subject, completed: true }, user.id);
   if (!result.ok) return { error: result.error };
 
   revalidateLeadViews(leadId);
-  return { success: `${labels[type]} logged.` };
+  return { success: `${subject} — logged.` };
 }

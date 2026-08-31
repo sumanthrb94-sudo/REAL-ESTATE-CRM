@@ -81,7 +81,7 @@ describe("server action authorization", () => {
     for (const file of files) {
       const source = readFileSync(file, "utf8");
       for (const chunk of source.split(/\nexport async function /).slice(1)) {
-        const name = chunk.split("(")[0].trim();
+        const name = (chunk.split("(")[0] ?? "").trim();
         checked++;
         if (EXEMPT.has(name)) continue;
         // Guards may be called directly or via a file-local helper, so the
