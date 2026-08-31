@@ -18,6 +18,7 @@ import {
 } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import type { DataStore, QueryOptions, Repository } from "./store";
+import { describePrivateKey, normalisePrivateKey } from "./private-key";
 
 // ─── Admin SDK singleton (serverless-safe) ──────────────────────────────────
 const globalForFb = globalThis as unknown as { __estateFs?: Firestore };
@@ -25,14 +26,21 @@ const globalForFb = globalThis as unknown as { __estateFs?: Firestore };
 function readCredentials() {
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  // Vercel stores multi-line secrets with literal "\n"; normalize back to newlines.
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const rawKey = process.env.FIREBASE_PRIVATE_KEY;
 
-  if (!projectId || !clientEmail || !privateKey) {
+  if (!projectId || !clientEmail || !rawKey) {
     throw new Error(
       "[db] DATA_DRIVER=firebase requires FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY.",
     );
   }
+
+  // Repairs the manglings a dashboard paste introduces; see private-key.ts.
+  const privateKey = normalisePrivateKey(rawKey);
+
+  // Log the key's shape — never the key — so a bad paste is diagnosable from
+  // the runtime log instead of only "DECODER routines::unsupported".
+  console.log(`[db] private key: ${describePrivateKey(rawKey)}`);
+
   return { projectId, clientEmail, privateKey };
 }
 
