@@ -27,7 +27,7 @@ import { requirePermission } from "@/server/auth/guard";
 import { listAssignableUsers } from "@/server/auth/session";
 import { canViewLead, getLeadDetail } from "@/server/modules/leads";
 import type { ActivityType, LeadTemperature } from "@/types/domain";
-import { formatDate, formatDateTime, formatINR, humanize } from "@/lib/utils";
+import { formatBudgetRange, formatDate, formatDateTime, humanize } from "@/lib/utils";
 
 const ACTIVITY_ICONS: Record<ActivityType, React.ComponentType<{ className?: string }>> = {
   NOTE: StickyNote,
@@ -106,7 +106,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Budget</p>
                 <p className="mt-1 text-sm font-medium">
                   {lead.budgetMin || lead.budgetMax
-                    ? `${formatINR(lead.budgetMin)} – ${formatINR(lead.budgetMax)}`
+                    ? formatBudgetRange(lead.budgetMin, lead.budgetMax)
                     : "—"}
                 </p>
               </div>

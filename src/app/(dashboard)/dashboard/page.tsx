@@ -34,7 +34,7 @@ export default async function DashboardPage() {
         description="Real-time view of sales performance, pipeline and inventory."
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard href="/leads" label="Total Leads" value={summary.totalLeads.toString()} delta={{ value: `+${summary.newLeadsThisWeek} this week`, positive: true }} icon={<Users className="h-5 w-5" />} />
         <StatCard href="/leads" label="Active Leads" value={summary.activeLeads.toString()} icon={<Target className="h-5 w-5" />} />
         <StatCard href="/reports" label="Conversion" value={`${summary.conversionRate}%`} icon={<TrendingUp className="h-5 w-5" />} />

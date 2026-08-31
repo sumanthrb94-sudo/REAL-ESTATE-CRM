@@ -15,10 +15,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 
 const PALETTE = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#65a30d"];
 
 export function TrendChart({ data }: { data: { month: string; leads: number; bookings: number }[] }) {
+  const animate = !usePrefersReducedMotion();
   return (
     <ResponsiveContainer width="100%" height={280}>
       <AreaChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -37,8 +39,8 @@ export function TrendChart({ data }: { data: { month: string; leads: number; boo
         <YAxis tick={{ fontSize: 12 }} />
         <Tooltip />
         <Legend />
-        <Area type="monotone" dataKey="leads" stroke="#2563eb" fill="url(#gLeads)" name="Leads" />
-        <Area type="monotone" dataKey="bookings" stroke="#16a34a" fill="url(#gBookings)" name="Bookings" />
+        <Area type="monotone" dataKey="leads" stroke="#2563eb" fill="url(#gLeads)" name="Leads" isAnimationActive={animate} />
+        <Area type="monotone" dataKey="bookings" stroke="#16a34a" fill="url(#gBookings)" name="Bookings" isAnimationActive={animate} />
       </AreaChart>
     </ResponsiveContainer>
   );
@@ -53,6 +55,7 @@ export function CategoryBarChart({
   xKey: string;
   barKey: string;
 }) {
+  const animate = !usePrefersReducedMotion();
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -60,7 +63,7 @@ export function CategoryBarChart({
         <XAxis dataKey={xKey} tick={{ fontSize: 11 }} interval={0} angle={-20} textAnchor="end" height={60} />
         <YAxis tick={{ fontSize: 12 }} />
         <Tooltip />
-        <Bar dataKey={barKey} radius={[4, 4, 0, 0]}>
+        <Bar dataKey={barKey} radius={[4, 4, 0, 0]} isAnimationActive={animate}>
           {data.map((_, i) => (
             <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
           ))}
@@ -82,10 +85,19 @@ export function DonutChart({
    */
   colors?: Record<string, string>;
 }) {
+  const animate = !usePrefersReducedMotion();
   return (
     <ResponsiveContainer width="100%" height={280}>
       <PieChart>
-        <Pie data={data} dataKey="value" nameKey="name" innerRadius={60} outerRadius={100} paddingAngle={2}>
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="name"
+          innerRadius={60}
+          outerRadius={100}
+          paddingAngle={2}
+          isAnimationActive={animate}
+        >
           {data.map((slice, i) => (
             <Cell key={i} fill={colors?.[slice.name] ?? PALETTE[i % PALETTE.length]} />
           ))}

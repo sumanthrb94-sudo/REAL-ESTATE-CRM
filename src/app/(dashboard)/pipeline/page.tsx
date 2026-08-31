@@ -47,7 +47,7 @@ export default async function PipelinePage() {
         description="Every open lead by stage — move cards forward as deals progress."
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard label="Open Leads" value={open.length.toString()} icon={<KanbanSquare className="h-5 w-5" />} />
         <StatCard label="Open Value" value={formatINR(openValue)} icon={<IndianRupee className="h-5 w-5" />} />
         <StatCard label="Booked" value={booked.toString()} icon={<Target className="h-5 w-5" />} />

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { blankToUndefined } from "@/lib/zod-helpers";
+import { formatBudgetRange } from "@/lib/utils";
 import { activityInputSchema } from "@/server/modules/leads";
 import { visitInputSchema } from "@/server/modules/site-visits";
 import { ruleInputSchema } from "@/server/modules/distribution";
@@ -57,5 +58,32 @@ describe("schemas accept FormData nulls for unrendered fields", () => {
       active: true,
     });
     expect(parsed.success).toBe(true);
+  });
+});
+
+describe("formatBudgetRange", () => {
+  it("renders a true range with both bounds", () => {
+    expect(formatBudgetRange(15_000_000, 18_000_000)).toBe("₹1.50 Cr – ₹1.80 Cr");
+  });
+
+  it("does not print an em dash as a bound when only one side is known", () => {
+    // A CSV usually carries one budget figure, so this is the common case.
+    expect(formatBudgetRange(undefined, 9_000_000)).toBe("Up to ₹90.00 L");
+    expect(formatBudgetRange(9_000_000, undefined)).toBe("₹90.00 L+");
+    for (const out of [
+      formatBudgetRange(undefined, 9_000_000),
+      formatBudgetRange(9_000_000, undefined),
+    ]) {
+      expect(out).not.toContain("—");
+    }
+  });
+
+  it("collapses a range whose bounds are equal", () => {
+    expect(formatBudgetRange(9_000_000, 9_000_000)).toBe("₹90.00 L");
+  });
+
+  it("falls back to an em dash when no budget is known", () => {
+    expect(formatBudgetRange(undefined, undefined)).toBe("—");
+    expect(formatBudgetRange(null, null)).toBe("—");
   });
 });

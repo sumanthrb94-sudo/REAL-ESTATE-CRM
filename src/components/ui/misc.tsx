@@ -42,10 +42,10 @@ export function StatCard({
   const body = (
     <>
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        <p className="text-xs font-medium text-muted-foreground sm:text-sm">{label}</p>
         {icon ? <div className="text-muted-foreground">{icon}</div> : null}
       </div>
-      <p className="mt-2 text-3xl font-semibold tracking-tight">{value}</p>
+      <p className="mt-2 truncate text-2xl font-semibold tracking-tight sm:text-3xl">{value}</p>
       {delta ? (
         <p className={cn("mt-1 text-xs font-medium", delta.positive ? "text-success" : "text-destructive")}>
           {delta.value}
@@ -58,7 +58,7 @@ export function StatCard({
     return (
       <Link
         href={href}
-        className="group relative block rounded-lg border border-border bg-card p-5 card-shadow transition-colors hover:border-primary/40 hover:bg-muted/40"
+        className="group relative block rounded-lg border border-border bg-card p-4 card-shadow transition-colors hover:border-primary/40 hover:bg-muted/40 sm:p-5"
       >
         <ArrowUpRight className="absolute right-3 top-3 h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
         {body}
@@ -66,7 +66,7 @@ export function StatCard({
     );
   }
 
-  return <div className="rounded-lg border border-border bg-card p-5 card-shadow">{body}</div>;
+  return <div className="rounded-lg border border-border bg-card p-4 card-shadow sm:p-5">{body}</div>;
 }
 
 // ─── Avatar ───────────────────────────────────────────────────────────────

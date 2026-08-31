@@ -23,7 +23,7 @@ import {
   type LeadStatus,
   type LeadTemperature,
 } from "@/types/domain";
-import { formatDate, formatINR, humanize } from "@/lib/utils";
+import { formatBudgetRange, formatDate, formatINR, humanize } from "@/lib/utils";
 
 const TEMPS: LeadTemperature[] = ["HOT", "WARM", "COLD"];
 
@@ -89,7 +89,7 @@ export default async function LeadsPage({
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard label="Matching Leads" value={leads.length.toString()} icon={<Users className="h-5 w-5" />} />
         <StatCard label="Hot Leads" value={hotCount.toString()} icon={<Flame className="h-5 w-5" />} />
         <StatCard label="Unassigned" value={unassigned.toString()} icon={<UserPlus className="h-5 w-5" />} />
@@ -108,7 +108,48 @@ export default async function LeadsPage({
               icon={<Users className="h-8 w-8" />}
             />
           ) : (
-            <Table>
+            <>
+              {/*
+               * Phones get a list, not the table. Squeezed into 390px the table
+               * broke every name onto two lines, every phone number onto three,
+               * and clipped the temperature badge off the right edge.
+               */}
+              <ul className="divide-y divide-border sm:hidden">
+                {leads.map((lead) => (
+                  <li key={lead.id}>
+                    <Link href={`/leads/${lead.id}`} className="block py-3 active:bg-muted/50">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{lead.name}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">{lead.phone}</p>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <Badge tone={statusTone(lead.status)}>{humanize(lead.status)}</Badge>
+                          <Badge tone={temperatureTone(lead.temperature)}>
+                            {humanize(lead.temperature)}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <span>{humanize(lead.source)}</span>
+                        <span aria-hidden>·</span>
+                        <span>Score {lead.score}</span>
+                        {lead.budgetMin || lead.budgetMax ? (
+                          <>
+                            <span aria-hidden>·</span>
+                            <span>{formatBudgetRange(lead.budgetMin, lead.budgetMax)}</span>
+                          </>
+                        ) : null}
+                        <span aria-hidden>·</span>
+                        <span>{lead.owner ? lead.owner.name : "Unassigned"}</span>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="hidden sm:block">
+                <Table>
               <THead>
                 <TR>
                   <TH>Lead</TH>
@@ -139,9 +180,7 @@ export default async function LeadsPage({
                     </TD>
                     <TD className="font-medium">{lead.score}</TD>
                     <TD className="whitespace-nowrap text-muted-foreground">
-                      {lead.budgetMin || lead.budgetMax
-                        ? `${formatINR(lead.budgetMin)} – ${formatINR(lead.budgetMax)}`
-                        : "—"}
+                      {formatBudgetRange(lead.budgetMin, lead.budgetMax)}
                     </TD>
                     <TD>
                       {lead.owner ? (
@@ -157,7 +196,9 @@ export default async function LeadsPage({
                   </TR>
                 ))}
               </TBody>
-            </Table>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

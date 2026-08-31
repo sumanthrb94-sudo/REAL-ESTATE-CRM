@@ -43,7 +43,7 @@ export default async function ReportsPage() {
         description="Executive analytics across funnel, sources, projects, revenue and teams."
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Total Leads" value={formatNumber(summary.totalLeads)} delta={{ value: `+${summary.newLeadsThisWeek} this week`, positive: true }} icon={<Users className="h-5 w-5" />} />
         <StatCard label="Active Pipeline" value={formatNumber(summary.activeLeads)} icon={<Target className="h-5 w-5" />} />
         <StatCard label="Conversion" value={`${summary.conversionRate}%`} icon={<TrendingUp className="h-5 w-5" />} />

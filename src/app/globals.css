@@ -58,6 +58,26 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
+
+  /*
+   * Respect an explicit system request to reduce motion.
+   *
+   * Nothing here honoured prefers-reduced-motion, yet the app animates chart
+   * entry, hover transitions and the loading pulse. Vestibular triggers aside,
+   * this is the setting people reach for precisely so interfaces stop moving.
+   * Transitions are collapsed rather than removed so state changes still land
+   * instantly instead of not at all.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer utilities {

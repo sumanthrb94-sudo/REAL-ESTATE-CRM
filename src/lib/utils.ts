@@ -13,6 +13,22 @@ export function formatINR(amount?: number | null): string {
   return `₹${amount.toLocaleString("en-IN")}`;
 }
 
+/**
+ * Renders a budget range in the form a salesperson would say it.
+ *
+ * Interpolating two formatINR calls produced "— – ₹90.00 L" for every lead
+ * with only one bound — which is most imported leads, since a CSV usually
+ * carries a single budget figure rather than a range.
+ */
+export function formatBudgetRange(min?: number | null, max?: number | null): string {
+  if (min != null && max != null) {
+    return min === max ? formatINR(min) : `${formatINR(min)} – ${formatINR(max)}`;
+  }
+  if (max != null) return `Up to ${formatINR(max)}`;
+  if (min != null) return `${formatINR(min)}+`;
+  return "—";
+}
+
 export function formatNumber(n?: number | null): string {
   if (n == null) return "—";
   return n.toLocaleString("en-IN");
