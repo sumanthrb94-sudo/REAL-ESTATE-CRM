@@ -9,6 +9,7 @@ import { db } from "@/server/db";
 import { hashPassword, needsRehash, verifyPassword, MIN_PASSWORD_LENGTH } from "./password";
 import { getSessionUser, SESSION_COOKIE } from "./session";
 import { createSessionToken, SESSION_TTL_MS } from "./token";
+import { clearFailures, lockState, registerFailure } from "./lockout";
 
 export interface AuthState {
   error?: string;
@@ -49,16 +50,37 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
 
   const user = await db.users.findOne({ email });
 
+  // Refuse before spending scrypt on a locked account.
+  if (user) {
+    const lock = lockState(user);
+    if (lock.locked) {
+      return {
+        error: `Too many failed sign-in attempts. Try again in ${lock.minutesRemaining} minute${
+          lock.minutesRemaining === 1 ? "" : "s"
+        }.`,
+      };
+    }
+  }
+
   // Always run a verification, even with no matching user, so the response
   // time does not reveal whether the address exists.
   const ok = await verifyPassword(password, user?.passwordHash);
-  if (!user || !ok) return { error: INVALID_CREDENTIALS };
+  if (!user || !ok) {
+    // Count the failure against the account when there is one. An unknown
+    // address has nothing to count against, and still returns the same
+    // message so the response does not confirm which case it was.
+    if (user) await db.users.update(user.id, registerFailure(user));
+    return { error: INVALID_CREDENTIALS };
+  }
 
   if (!user.active) {
     return { error: "This account has been deactivated. Ask an administrator to restore it." };
   }
 
-  const patch: Record<string, unknown> = { lastLoginAt: new Date().toISOString() };
+  const patch: Record<string, unknown> = {
+    lastLoginAt: new Date().toISOString(),
+    ...clearFailures(),
+  };
   // Transparently upgrade hashes made with older cost parameters.
   if (needsRehash(user.passwordHash)) patch.passwordHash = await hashPassword(password);
   await db.users.update(user.id, patch);

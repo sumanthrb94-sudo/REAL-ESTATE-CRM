@@ -39,6 +39,12 @@ export interface User {
   passwordHash?: string;
   /** Set when an admin resets the password; forces a change on next sign-in. */
   mustChangePassword?: boolean;
+  /** Consecutive failed sign-ins; cleared on success. Drives the lockout. */
+  failedLoginCount?: number;
+  /** ISO timestamp of the first failure in the current run. */
+  firstFailedLoginAt?: string;
+  /** ISO timestamp until which sign-in is refused for this account. */
+  lockedUntil?: string;
   lastLoginAt?: string;
   createdAt: string;
   updatedAt: string;
