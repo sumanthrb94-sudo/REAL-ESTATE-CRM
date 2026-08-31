@@ -44,6 +44,18 @@ describe("normalisePrivateKey", () => {
     }
   });
 
+  it("rebuilds a marker lost to a truncated paste", () => {
+    const escaped = PEM.replace(/\n/g, "\\n");
+    // Exactly what production reported: 29 characters short, header gone,
+    // footer and base64 body intact.
+    const noHeader = escaped.replace("-----BEGIN PRIVATE KEY-----\\n", "");
+    expect(noHeader.length).toBe(escaped.length - 29);
+    expect(parses(normalisePrivateKey(noHeader)), "missing header should parse").toBe(true);
+
+    const noFooter = escaped.replace("\\n-----END PRIVATE KEY-----", "");
+    expect(parses(normalisePrivateKey(noFooter)), "missing footer should parse").toBe(true);
+  });
+
   it("cannot invent a key that was truncated", () => {
     // Nothing can repair missing bytes — this must fail loudly, not silently.
     const truncated = PEM.slice(0, Math.floor(PEM.length / 2));

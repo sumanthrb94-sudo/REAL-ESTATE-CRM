@@ -31,16 +31,28 @@ export function normalisePrivateKey(raw: string): string {
   // Shells and some dashboards double-escape, so collapse "\\n" before "\n".
   key = key.replace(/\\\\n/g, "\n").replace(/\\n/g, "\n").replace(/\r\n/g, "\n");
 
-  const header = key.includes(RSA_HEADER) ? RSA_HEADER : HEADER;
-  const footer = key.includes(RSA_FOOTER) ? RSA_FOOTER : FOOTER;
-  if (!key.includes(header) || !key.includes(footer)) return key;
+  const isRsa = key.includes(RSA_HEADER) || key.includes(RSA_FOOTER);
+  const header = isRsa ? RSA_HEADER : HEADER;
+  const footer = isRsa ? RSA_FOOTER : FOOTER;
+  const hasHeader = key.includes(header);
+  const hasFooter = key.includes(footer);
 
-  // Re-wrap from the base64 between the markers. This repairs a key whose
-  // newlines were lost entirely, and is a no-op on a well-formed one.
+  // A marker lost to a truncated paste is recoverable: the surviving one says
+  // which key type this is, and the body carries all the entropy. Seen in the
+  // wild as a value 29 characters short — exactly "-----BEGIN PRIVATE KEY-----"
+  // plus its newline — with the base64 fully intact.
   const body = key
-    .slice(key.indexOf(header) + header.length, key.indexOf(footer))
+    .slice(
+      hasHeader ? key.indexOf(header) + header.length : 0,
+      hasFooter ? key.indexOf(footer) : key.length,
+    )
     .replace(/[\s]/g, "");
-  if (!body) return key;
+
+  // Only rebuild when the body still looks like a key. Refusing here keeps a
+  // genuinely truncated value failing loudly instead of being dressed up as
+  // a valid PEM that OpenSSL then rejects for a less obvious reason.
+  if (!body || !/^[A-Za-z0-9+/=]+$/.test(body) || body.length < 512) return key;
+  if (!hasHeader && !hasFooter) return key;
 
   const lines: string[] = [];
   for (let i = 0; i < body.length; i += WRAP) lines.push(body.slice(i, i + WRAP));
