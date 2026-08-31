@@ -190,7 +190,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Se
           description="Try a different city or status, or add a new project to the portfolio."
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
           {summaries.map((summary) => (
             <ProjectCard key={summary.project.id} summary={summary} />
           ))}

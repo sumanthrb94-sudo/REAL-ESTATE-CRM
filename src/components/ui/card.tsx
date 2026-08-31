@@ -4,7 +4,17 @@ import { cn } from "@/lib/utils";
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("rounded-lg border border-border bg-card text-card-foreground card-shadow", className)}
+      className={cn(
+        "rounded-lg border border-border bg-card text-card-foreground card-shadow",
+        // min-w-0 is load-bearing. A grid or flex child defaults to
+        // min-width:auto, which is its content's intrinsic width — so a card
+        // holding a wide table or chart refused to shrink and pushed the whole
+        // page sideways on a phone. /marketing overflowed by 590px and
+        // /reports by 295px, and the table's own overflow-x-auto never got a
+        // chance because its parent had already blown past the viewport.
+        "min-w-0",
+        className,
+      )}
       {...props}
     />
   );

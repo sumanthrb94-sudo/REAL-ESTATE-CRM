@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/input";
 import { EmptyState, PageHeader, StatCard } from "@/components/ui/misc";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { ResponsiveRecords } from "@/components/ui/record-list";
 import { OnboardPartnerForm } from "@/components/partners/onboard-partner-form";
 import { PartnerStatusActions } from "@/components/partners/partner-status-actions";
 import { can } from "@/server/auth/rbac";
@@ -52,7 +53,7 @@ export default async function ChannelPartnersPage({
         actions={canWrite ? <OnboardPartnerForm /> : undefined}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard
           label="Active Partners"
           value={formatNumber(stats.active)}
@@ -122,6 +123,24 @@ export default async function ChannelPartnersPage({
               icon={<Handshake className="h-8 w-8" />}
             />
           ) : (
+            <ResponsiveRecords
+              items={partners.map((p) => ({
+                id: p.id,
+                href: `/channel-partners/${p.id}`,
+                title: p.name,
+                subtitle: [p.company, p.city].filter(Boolean).join(" · ") || undefined,
+                badges: <Badge tone={statusTone(p.status)}>{p.status}</Badge>,
+                meta: [
+                  p.phone,
+                  `${p.commissionPct}% commission`,
+                  `${formatNumber(p.sourcedLeads)} leads · ${p.bookedLeads} booked`,
+                  `${formatINR(p.commissionEarned)} earned`,
+                ],
+                actions: canWrite ? (
+                  <PartnerStatusActions partnerId={p.id} status={p.status} />
+                ) : null,
+              }))}
+            >
             <Table>
               <THead>
                 <TR>
@@ -175,6 +194,7 @@ export default async function ChannelPartnersPage({
                 ))}
               </TBody>
             </Table>
+            </ResponsiveRecords>
           )}
         </CardContent>
       </Card>

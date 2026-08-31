@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState, PageHeader, StatCard } from "@/components/ui/misc";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { ResponsiveRecords } from "@/components/ui/record-list";
 import { BookingForm } from "@/components/inventory/booking-form";
 import { can } from "@/server/auth/rbac";
 import { requirePermission } from "@/server/auth/guard";
@@ -145,6 +146,24 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
       ) : (
         <Card>
           <CardContent className="p-0">
+            <ResponsiveRecords
+              items={rows.map((row) => ({
+                id: row.booking.id,
+                href: `/bookings/${row.booking.id}`,
+                title: row.leadName,
+                subtitle: `${row.unitNumber}${row.unitType ? ` · ${row.unitType}` : ""} at ${row.projectName}`,
+                badges: (
+                  <Badge tone={statusTone(row.booking.status)}>
+                    {humanize(row.booking.status)}
+                  </Badge>
+                ),
+                meta: [
+                  formatINR(row.booking.totalValue),
+                  row.agentName,
+                  formatDate(row.booking.bookedAt),
+                ],
+              }))}
+            >
             <Table>
               <THead>
                 <TR>
@@ -199,6 +218,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
                 ))}
               </TBody>
             </Table>
+            </ResponsiveRecords>
           </CardContent>
         </Card>
       )}

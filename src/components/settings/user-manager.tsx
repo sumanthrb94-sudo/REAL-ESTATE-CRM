@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Label, Select } from "@/components/ui/input";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { ResponsiveRecords } from "@/components/ui/record-list";
 import { Avatar } from "@/components/ui/misc";
 import {
   createUserAction,
@@ -19,7 +20,18 @@ import {
 } from "@/server/modules/users.actions";
 import type { UserRow } from "@/server/modules/users";
 import { ROLES, type Role } from "@/types/domain";
-import { formatDate, humanize } from "@/lib/utils";
+import { cn, formatDate, humanize } from "@/lib/utils";
+
+/**
+ * One definition of a user's state, shared by the table and the phone list so
+ * the two renderings cannot drift apart.
+ */
+function statusBadge(u: { active: boolean; passwordSet: boolean; mustChangePassword?: boolean }) {
+  if (!u.active) return <Badge tone="destructive">Deactivated</Badge>;
+  if (!u.passwordSet) return <Badge tone="warning">No password</Badge>;
+  if (u.mustChangePassword) return <Badge tone="warning">Must reset</Badge>;
+  return <Badge tone="success">Active</Badge>;
+}
 
 const ROLE_HELP: Record<Role, string> = {
   ADMIN: "Everything, including user management.",
@@ -159,6 +171,77 @@ export function UserManager({
 
       <Card>
         <CardContent className="pt-5">
+          <ResponsiveRecords
+            items={users.map((u) => ({
+              id: u.id,
+              title: (
+                <>
+                  {u.name}
+                  {u.id === currentUserId ? (
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">you</span>
+                  ) : null}
+                </>
+              ),
+              subtitle: u.email,
+              badges: statusBadge(u),
+              meta: [
+                humanize(u.role),
+                u.lastLoginAt ? `Last seen ${formatDate(u.lastLoginAt)}` : "Never signed in",
+              ],
+              actions: (
+                <div className="space-y-2">
+                  <Select
+                    aria-label={`Role for ${u.name}`}
+                    value={u.role}
+                    onChange={(e) => onChangeRole(u, e.target.value as Role)}
+                  >
+                    {ROLES.map((r) => (
+                      <option key={r} value={r}>
+                        {humanize(r)}
+                      </option>
+                    ))}
+                  </Select>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setResettingId(resettingId === u.id ? null : u.id)}
+                    >
+                      <KeyRound className="h-4 w-4" /> Reset
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn("flex-1", u.active ? "text-destructive" : "text-success")}
+                      onClick={() => onToggleActive(u)}
+                      disabled={u.id === currentUserId}
+                    >
+                      {u.active ? (
+                        <>
+                          <UserMinus className="h-4 w-4" /> Deactivate
+                        </>
+                      ) : (
+                        <>
+                          <ShieldCheck className="h-4 w-4" /> Reactivate
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  {resettingId === u.id ? (
+                    <div className="rounded-md bg-muted/40 p-3">
+                      <ResetPasswordForm
+                        userId={u.id}
+                        userName={u.name}
+                        minLength={minPasswordLength}
+                        onDone={() => setResettingId(null)}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              ),
+            }))}
+          >
           <Table>
             <THead>
               <TR>
@@ -202,15 +285,7 @@ export function UserManager({
                       </Select>
                     </TD>
                     <TD>
-                      {!u.active ? (
-                        <Badge tone="destructive">Deactivated</Badge>
-                      ) : !u.passwordSet ? (
-                        <Badge tone="warning">No password</Badge>
-                      ) : u.mustChangePassword ? (
-                        <Badge tone="warning">Must reset</Badge>
-                      ) : (
-                        <Badge tone="success">Active</Badge>
-                      )}
+                      {statusBadge(u)}
                     </TD>
                     <TD className="whitespace-nowrap text-xs text-muted-foreground">
                       {u.lastLoginAt ? formatDate(u.lastLoginAt) : "Never"}
@@ -260,6 +335,7 @@ export function UserManager({
               ))}
             </TBody>
           </Table>
+          </ResponsiveRecords>
         </CardContent>
       </Card>
     </div>

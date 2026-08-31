@@ -7,6 +7,7 @@ import { Badge, statusTone } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, EmptyState, PageHeader, StatCard } from "@/components/ui/misc";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { ResponsiveRecords } from "@/components/ui/record-list";
 import { VisitActions } from "@/components/leads/visit-actions";
 import { VisitForm } from "@/components/leads/visit-form";
 import { can } from "@/server/auth/rbac";
@@ -17,6 +18,24 @@ import { formatDateTime, humanize } from "@/lib/utils";
 
 function VisitTable({ visits, canWrite }: { visits: SiteVisitListItem[]; canWrite: boolean }) {
   return (
+    <ResponsiveRecords
+      items={visits.map((visit) => ({
+        id: visit.id,
+        href: visit.lead ? `/leads/${visit.lead.id}` : undefined,
+        title: visit.lead?.name ?? "Unknown lead",
+        subtitle: visit.lead?.phone,
+        badges: <Badge tone={statusTone(visit.status)}>{humanize(visit.status)}</Badge>,
+        meta: [
+          formatDateTime(visit.scheduledAt),
+          visit.project?.name,
+          visit.agent ? visit.agent.name : "Unassigned",
+          visit.feedback ? `“${visit.feedback}”` : null,
+        ],
+        actions: canWrite ? (
+          <VisitActions visitId={visit.id} status={visit.status} feedback={visit.feedback} />
+        ) : null,
+      }))}
+    >
     <Table>
       <THead>
         <TR>
@@ -69,6 +88,7 @@ function VisitTable({ visits, canWrite }: { visits: SiteVisitListItem[]; canWrit
         ))}
       </TBody>
     </Table>
+    </ResponsiveRecords>
   );
 }
 
