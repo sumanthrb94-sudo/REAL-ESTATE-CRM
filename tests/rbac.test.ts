@@ -36,7 +36,10 @@ describe("nav registry", () => {
   it("gates every destination behind a permission some role actually holds", () => {
     for (const group of NAV) {
       for (const item of group.items) {
-        const reachable = ROLES.some((r) => can(r, item.permission));
+        // permission is optional on NavItem: an entry without one is open to
+        // anyone signed in, which is reachable by definition.
+        const reachable =
+          item.permission === undefined || ROLES.some((r) => can(r, item.permission!));
         expect(reachable, `${item.href} is unreachable by every role`).toBe(true);
       }
     }

@@ -82,10 +82,23 @@ function matchesWhere<T>(item: T, where?: Partial<Record<keyof T, unknown>>): bo
 
 export class FirestoreRepository<T extends { id: string }> implements Repository<T> {
   constructor(
-    private readonly db: Firestore,
     private readonly collection: string,
     private readonly idPrefix: string,
   ) {}
+
+  /**
+   * Resolved per operation, never in the constructor.
+   *
+   * Connecting eagerly meant that merely importing this module initialised the
+   * Admin SDK and parsed FIREBASE_PRIVATE_KEY. `next build` evaluates every
+   * page module to collect its route config, so a production build demanded
+   * valid Firestore credentials and died with "Failed to parse private key"
+   * before serving a single request. getDb() caches on globalThis, so calling
+   * it per operation costs nothing after the first.
+   */
+  private get db(): Firestore {
+    return getDb();
+  }
 
   private col() {
     return this.db.collection(this.collection);
@@ -219,10 +232,11 @@ const COLLECTIONS: Array<[keyof DataStore, string]> = [
 ];
 
 export function createFirestoreStore(): DataStore {
-  const db = getDb();
+  // Deliberately does not touch getDb(): building the store must stay free of
+  // credentials so `next build` never needs them. The first real query connects.
   const store = {} as Record<keyof DataStore, FirestoreRepository<{ id: string }>>;
   for (const [key, prefix] of COLLECTIONS) {
-    store[key] = new FirestoreRepository(db, key as string, prefix);
+    store[key] = new FirestoreRepository(key as string, prefix);
   }
   return store as unknown as DataStore;
 }
