@@ -11,20 +11,27 @@ import {
   getLeadsByStatus,
   getMonthlyTrend,
 } from "@/server/modules/analytics";
-import { requirePermission } from "@/server/auth/guard";
+import { requirePermission, visibleOwnerIds } from "@/server/auth/guard";
+import { teamMemberIds } from "@/server/modules/leads";
 import { formatINR, humanize } from "@/lib/utils";
 
 export default async function DashboardPage() {
-  // The dashboard aggregates the whole organisation, so it needs report.read —
-  // the same permission the nav registry gates it behind.
-  await requirePermission("report.read");
+  // Every signed-in role gets a dashboard — it is where login lands, and gating
+  // it behind report.read locked sales agents out of the app entirely. The
+  // permission grants the page; the figures below are scoped to what the
+  // viewer may see, the same way /leads and /pipeline scope theirs.
+  const user = await requirePermission("dashboard.read");
+  const ownerScope = await visibleOwnerIds(user, () => teamMemberIds(user));
+
+  // Peers' numbers are management information, not an agent's to browse.
+  const canSeeLeaderboard = ownerScope === undefined;
 
   const [summary, byStatus, bySource, trend, leaderboard] = await Promise.all([
-    getDashboardSummary(),
-    getLeadsByStatus(),
-    getLeadsBySource(),
-    getMonthlyTrend(),
-    getAgentLeaderboard(),
+    getDashboardSummary(ownerScope),
+    getLeadsByStatus(ownerScope),
+    getLeadsBySource(ownerScope),
+    getMonthlyTrend(ownerScope),
+    canSeeLeaderboard ? getAgentLeaderboard() : Promise.resolve([]),
   ]);
 
   return (
@@ -37,7 +44,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard href="/leads" label="Total Leads" value={summary.totalLeads.toString()} delta={{ value: `+${summary.newLeadsThisWeek} this week`, positive: true }} icon={<Users className="h-5 w-5" />} />
         <StatCard href="/leads" label="Active Leads" value={summary.activeLeads.toString()} icon={<Target className="h-5 w-5" />} />
-        <StatCard href="/reports" label="Conversion" value={`${summary.conversionRate}%`} icon={<TrendingUp className="h-5 w-5" />} />
+        <StatCard href={canSeeLeaderboard ? "/reports" : undefined} label="Conversion" value={`${summary.conversionRate}%`} icon={<TrendingUp className="h-5 w-5" />} />
         <StatCard href="/pipeline" label="Pipeline Value" value={formatINR(summary.pipelineValue)} icon={<IndianRupee className="h-5 w-5" />} />
         <StatCard href="/inventory" label="Available Units" value={summary.availableUnits.toString()} icon={<Building2 className="h-5 w-5" />} />
         <StatCard href="/site-visits" label="Upcoming Visits" value={summary.upcomingSiteVisits.toString()} icon={<CalendarCheck className="h-5 w-5" />} />
@@ -63,7 +70,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className={canSeeLeaderboard ? "lg:col-span-2" : "lg:col-span-3"}>
           <CardHeader>
             <CardTitle>Lead Sources</CardTitle>
           </CardHeader>
@@ -75,6 +82,7 @@ export default async function DashboardPage() {
             />
           </CardContent>
         </Card>
+        {canSeeLeaderboard ? (
         <Card>
           <CardHeader>
             <CardTitle>Top Performers</CardTitle>
@@ -102,6 +110,7 @@ export default async function DashboardPage() {
             </Table>
           </CardContent>
         </Card>
+        ) : null}
       </div>
     </div>
   );

@@ -4,6 +4,7 @@
 import type { Role } from "@/types/domain";
 
 export type Permission =
+  | "dashboard.read"
   | "lead.read"
   | "lead.write"
   | "lead.assign"
@@ -20,6 +21,7 @@ export type Permission =
   | "user.manage";
 
 const ALL: Permission[] = [
+  "dashboard.read",
   "lead.read", "lead.write", "lead.assign",
   "inventory.read", "inventory.write",
   "booking.read", "booking.write",
@@ -31,24 +33,29 @@ const ALL: Permission[] = [
 const MATRIX: Record<Role, Permission[]> = {
   ADMIN: ALL,
   SALES_HEAD: [
+    "dashboard.read",
     "lead.read", "lead.write", "lead.assign",
     "inventory.read", "booking.read", "booking.write",
     "marketing.read", "partner.read", "partner.write", "report.read",
   ],
   SALES_MANAGER: [
+    "dashboard.read",
     "lead.read", "lead.write", "lead.assign",
     "inventory.read", "booking.read", "booking.write",
     "partner.read", "report.read",
   ],
   SALES_AGENT: [
+    "dashboard.read",
     "lead.read", "lead.write",
     "inventory.read", "booking.read", "booking.write",
   ],
   MARKETING: [
+    "dashboard.read",
     "lead.read", "marketing.read", "marketing.write", "report.read",
   ],
-  CHANNEL_PARTNER: ["lead.read", "inventory.read"],
+  CHANNEL_PARTNER: ["dashboard.read", "lead.read", "inventory.read"],
   VIEWER: [
+    "dashboard.read",
     "lead.read", "inventory.read", "booking.read",
     "marketing.read", "partner.read", "report.read",
   ],

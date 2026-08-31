@@ -19,14 +19,37 @@ export interface DashboardSummary {
 
 const WEEK = 7 * 86_400_000;
 
-export async function getDashboardSummary(): Promise<DashboardSummary> {
-  const [leads, bookings, units, siteVisits, campaigns] = await Promise.all([
+/**
+ * Restricts a list to the owners the viewer is allowed to see.
+ *
+ * `undefined` means no restriction (admins, heads, viewers). A SALES_AGENT
+ * gets their own id and a SALES_MANAGER their team's, exactly as /leads,
+ * /pipeline and /site-visits already scope their queries. Without this the
+ * dashboard reported organisation-wide totals to every role.
+ */
+function scopeToOwners<T extends { ownerId?: string; agentId?: string }>(
+  rows: T[],
+  ownerIds?: string[],
+): T[] {
+  if (!ownerIds) return rows;
+  const allowed = new Set(ownerIds);
+  return rows.filter((r) => {
+    const owner = r.ownerId ?? r.agentId;
+    return owner != null && allowed.has(owner);
+  });
+}
+
+export async function getDashboardSummary(ownerIds?: string[]): Promise<DashboardSummary> {
+  const [allLeads, allBookings, units, allSiteVisits, campaigns] = await Promise.all([
     db.leads.list(),
     db.bookings.list(),
     db.units.list(),
     db.siteVisits.list(),
     db.campaigns.list(),
   ]);
+  const leads = scopeToOwners(allLeads, ownerIds);
+  const bookings = scopeToOwners(allBookings, ownerIds);
+  const siteVisits = scopeToOwners(allSiteVisits, ownerIds);
 
   const now = Date.now();
   const newLeadsThisWeek = leads.filter((l) => now - new Date(l.createdAt).getTime() < WEEK).length;
@@ -55,15 +78,15 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   };
 }
 
-export async function getLeadsByStatus(): Promise<{ status: LeadStatus; count: number }[]> {
-  const leads = await db.leads.list();
+export async function getLeadsByStatus(ownerIds?: string[]): Promise<{ status: LeadStatus; count: number }[]> {
+  const leads = scopeToOwners(await db.leads.list(), ownerIds);
   const map = new Map<LeadStatus, number>();
   for (const l of leads) map.set(l.status, (map.get(l.status) ?? 0) + 1);
   return [...map.entries()].map(([status, count]) => ({ status, count }));
 }
 
-export async function getLeadsBySource(): Promise<{ source: LeadSource; count: number }[]> {
-  const leads = await db.leads.list();
+export async function getLeadsBySource(ownerIds?: string[]): Promise<{ source: LeadSource; count: number }[]> {
+  const leads = scopeToOwners(await db.leads.list(), ownerIds);
   const map = new Map<LeadSource, number>();
   for (const l of leads) map.set(l.source, (map.get(l.source) ?? 0) + 1);
   return [...map.entries()].map(([source, count]) => ({ source, count })).sort((a, b) => b.count - a.count);
@@ -103,8 +126,10 @@ export async function getAgentLeaderboard(): Promise<AgentPerformance[]> {
 }
 
 /** Monthly lead vs booking trend for the last 6 months. */
-export async function getMonthlyTrend(): Promise<{ month: string; leads: number; bookings: number }[]> {
-  const [leads, bookings] = await Promise.all([db.leads.list(), db.bookings.list()]);
+export async function getMonthlyTrend(ownerIds?: string[]): Promise<{ month: string; leads: number; bookings: number }[]> {
+  const [allLeads, allBookings] = await Promise.all([db.leads.list(), db.bookings.list()]);
+  const leads = scopeToOwners(allLeads, ownerIds);
+  const bookings = scopeToOwners(allBookings, ownerIds);
   const months: { key: string; label: string; leads: number; bookings: number }[] = [];
   // Six months ending with the current one. This was pinned to a hardcoded
   // June 2026 to match the old demo seed, which meant anything created after
