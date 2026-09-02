@@ -1,0 +1,6 @@
+assets/
+shots/
+vo/*.wav
+timings.json
+index.html
+*.mp4
