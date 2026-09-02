@@ -12,15 +12,18 @@ import { describe, expect, it } from "vitest";
 import { NAV, permissionForPath, activeNavHref } from "@/config/nav";
 
 const DASHBOARD_DIR = join(process.cwd(), "src/app/(dashboard)");
+const API_DIR = join(process.cwd(), "src/app/api");
 
-function findPages(dir: string, found: string[] = []): string[] {
+function findFiles(dir: string, match: (name: string) => boolean, found: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
-    if (statSync(full).isDirectory()) findPages(full, found);
-    else if (entry === "page.tsx") found.push(full);
+    if (statSync(full).isDirectory()) findFiles(full, match, found);
+    else if (match(entry)) found.push(full);
   }
   return found;
 }
+
+const findPages = (dir: string) => findFiles(dir, (n) => n === "page.tsx");
 
 /** The guards that count as asserting a permission. */
 const GUARDS = ["requirePermission(", "requireAnyPermission("];
@@ -55,6 +58,25 @@ describe("dashboard route guards", () => {
         ).toBe(true);
       }
     }
+  });
+});
+
+describe("API route guards", () => {
+  // Route handlers sit outside the (dashboard) layout, so the layout's
+  // permission check never runs for them. Each must authenticate itself.
+  const routes = findFiles(API_DIR, (n) => n === "route.ts" || n === "route.tsx");
+  const API_GUARDS = ["getSessionUser(", "requirePermission(", "requireAnyPermission("];
+
+  it("finds the API routes", () => {
+    expect(routes.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it.each(routes.map((p) => [p.replace(process.cwd() + "/", ""), p]))("%s authenticates", (_label, path) => {
+    const source = readFileSync(path, "utf8");
+    expect(
+      API_GUARDS.some((g) => source.includes(g)),
+      `${path} serves without resolving the session. Every route under src/app/api must call getSessionUser() or a permission guard.`,
+    ).toBe(true);
   });
 });
 

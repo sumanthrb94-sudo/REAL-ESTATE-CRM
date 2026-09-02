@@ -3,6 +3,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   // Vite resolves the "@/*" paths from tsconfig.json natively; no plugin needed.
   resolve: { tsconfigPaths: true },
+  // tsconfig keeps jsx "preserve" for Next; vitest (Vite 8, oxc) needs the automatic runtime for .tsx.
+  oxc: { jsx: { runtime: "automatic" } },
   test: {
     environment: "node",
     include: ["src/**/*.test.ts", "tests/**/*.test.ts"],

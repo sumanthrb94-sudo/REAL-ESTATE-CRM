@@ -43,6 +43,7 @@ export const NAV: NavGroup[] = [
       { label: "Campaigns", href: "/marketing", icon: "Megaphone", permission: "marketing.read" },
       { label: "Templates", href: "/marketing/templates", icon: "FileText", permission: "marketing.read" },
       { label: "Segments", href: "/marketing/segments", icon: "Filter", permission: "marketing.read" },
+      { label: "Studio", href: "/marketing/studio", icon: "Clapperboard", permission: "marketing.read" },
     ],
   },
   {
