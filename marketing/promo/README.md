@@ -22,6 +22,11 @@ pipeline after a UI change produces a fresh cut.
 4. **Build + render**: `node build.mjs && npm run check && npm run render`.
    `assets/` also needs `gsap.min.js` and `fonts/IBMPlexSans-*.ttf` from `public/reel-kit`.
 
+## Carousel
+
+`EXE=/path/to/chromium node carousel.mjs` renders five 1080×1350 slides from the same
+screens (`SIZE=1080x1080` for the square feed variant) into `out/`.
+
 ## Script
 
 Edit `vo/cues.json`. Scene timing follows the narration, so a longer line makes a
