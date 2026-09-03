@@ -341,3 +341,25 @@ export interface Segment {
   filters: SegmentFilter[];
   createdAt: string;
 }
+
+// --- Generated media ledger ------------------------------------------------
+
+export type MediaKind = "image" | "video" | "narration" | "music" | "copy";
+
+/** One call to a generation model, recorded before the call and settled after. */
+export interface MediaGeneration {
+  id: string;
+  kind: MediaKind;
+  provider: string;
+  model: string;
+  projectId?: string;
+  userId?: string;
+  prompt: string;
+  promptHash: string;
+  status: "done" | "failed" | "refused";
+  /** List-price estimate in USD; 0 on free tiers. */
+  estimatedCostUsd: number;
+  durationMs: number;
+  error?: string;
+  createdAt: string;
+}

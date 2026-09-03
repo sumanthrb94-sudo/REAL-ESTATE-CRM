@@ -101,6 +101,7 @@ export function createMemoryStore(seed: SeedData): DataStore {
     teams: repo("teams", "team"),
     leads: repo("leads", "lead"),
     activities: repo("activities", "act"),
+    mediaGenerations: repo("mediaGenerations", "gen"),
     siteVisits: repo("siteVisits", "sv"),
     assignmentRules: repo("assignmentRules", "rule"),
     projects: repo("projects", "proj"),

@@ -226,6 +226,7 @@ const COLLECTIONS: Array<[keyof DataStore, string]> = [
   ["teams", "team"],
   ["leads", "lead"],
   ["activities", "act"],
+  ["mediaGenerations", "gen"],
   ["siteVisits", "sv"],
   ["assignmentRules", "rule"],
   ["projects", "proj"],

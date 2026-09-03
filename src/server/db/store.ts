@@ -19,6 +19,7 @@ import type {
   Tower,
   Unit,
   User,
+  MediaGeneration,
 } from "@/types/domain";
 
 export interface QueryOptions<T> {
@@ -65,4 +66,5 @@ export interface DataStore {
   campaigns: Repository<Campaign>;
   templates: Repository<Template>;
   segments: Repository<Segment>;
+  mediaGenerations: Repository<MediaGeneration>;
 }

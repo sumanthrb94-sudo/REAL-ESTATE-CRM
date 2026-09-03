@@ -5,11 +5,16 @@
 // post: change the project's amenities or price and every asset follows.
 
 import Link from "next/link";
-import { Clapperboard, Download, Images, Mic } from "lucide-react";
+import { Clapperboard, Download, Gauge, Images, Mic, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState, PageHeader } from "@/components/ui/misc";
 import { requirePermission } from "@/server/auth/guard";
+import { can } from "@/server/auth/rbac";
+import { CopyLab, ImageLab } from "@/components/marketing/studio-lab";
+import { isLlmEnabled, llmConfig } from "@/server/ai/llm";
+import { usageSummary } from "@/server/media/ledger";
+import { nvidiaImageConfig } from "@/server/media/nvidia-image";
 import { buildCreativeBrief } from "@/server/content/brief";
 import { SLIDES, SLIDE_TITLES } from "@/server/content/carousel";
 import { IMAGE_PRESETS, DEFAULT_IMAGE_PRESET, isImagePresetId, REEL_PRESET } from "@/server/content/presets";
@@ -25,11 +30,16 @@ export default async function StudioPage({
 }: {
   searchParams: Promise<{ project?: string; preset?: string }>;
 }) {
-  const [, { project: projectParam, preset: presetParam }, projects] = await Promise.all([
+  const [user, { project: projectParam, preset: presetParam }, projects, usage] = await Promise.all([
     requirePermission("marketing.read"),
     searchParams,
     listProjects(),
+    usageSummary(),
   ]);
+  const canWrite = can(user.role, "marketing.write");
+  const llm = llmConfig();
+  const llmReady = isLlmEnabled();
+  const imagesReady = Boolean(nvidiaImageConfig().apiKey);
 
   const preset = presetParam && isImagePresetId(presetParam) ? presetParam : DEFAULT_IMAGE_PRESET;
   const selectedId = projectParam ?? projects[0]?.project.id;
@@ -76,6 +86,69 @@ export default async function StudioPage({
 
           {brief ? (
             <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Gauge className="h-5 w-5" /> Operator
+                  </CardTitle>
+                  <CardDescription>
+                    {llmReady ? `Language model: ${llm.provider} · ${llm.model}` : "No language model configured. Copy falls back to templates."}
+                    {" · "}
+                    {imagesReady ? "Images: NVIDIA NIM" : "Images: not configured"}
+                    {" · "}
+                    This month&apos;s generations are counted here; providers publish no balance.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                    {usage.map((u) => (
+                      <div key={u.kind} className="rounded-md border border-border p-2 text-sm">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">{u.kind}</p>
+                        <p className="font-medium tabular-nums">
+                          {u.used} <span className="text-muted-foreground">/ {u.cap}</span>
+                        </p>
+                        {u.estimatedCostUsd > 0 ? <p className="text-xs text-muted-foreground">${u.estimatedCostUsd.toFixed(2)}</p> : null}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5" /> Copy — {brief.name}
+                  </CardTitle>
+                  <CardDescription>
+                    Instagram caption, hashtags and Google responsive-ad lines written from the brief. Any invented price or area
+                    is rejected and the template is used instead.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <CopyLab projectId={brief.projectId} canWrite={canWrite} />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Images className="h-5 w-5" /> Images — {brief.name}
+                  </CardTitle>
+                  <CardDescription>
+                    Lifestyle and background images from FLUX on NVIDIA&apos;s free tier. Facts stay as text on the slides; the image is
+                    only ever the mood.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ImageLab
+                    projectId={brief.projectId}
+                    canWrite={canWrite}
+                    configured={imagesReady}
+                    defaultPrompt={`Evening view of a modern residential tower in ${brief.location}, warm interior lights, tree-lined avenue, soft dusk sky, photorealistic, cinematic, no text, no people`}
+                  />
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader className="flex-row flex-wrap items-baseline justify-between gap-2 space-y-0">
                   <div>
