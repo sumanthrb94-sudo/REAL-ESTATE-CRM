@@ -287,3 +287,76 @@ export async function autoAssignMany(leads: Lead[]): Promise<Map<string, string>
 
   return assignments;
 }
+
+
+// ─── Daily sweep ────────────────────────────────────────────────────────────
+
+export interface SweepResult {
+  /** Leads that had no owner when the sweep started. */
+  considered: number;
+  assigned: number;
+  /** Still unassigned: no rule matched, or the assignable pool is empty. */
+  remaining: number;
+  /** Per-agent tally, so a manager can see the morning's split at a glance. */
+  perAgent: { userId: string; name: string; count: number }[];
+  ranAt: string;
+}
+
+/**
+ * Assign every lead that currently has no owner.
+ *
+ * autoAssign runs when a lead is created or imported, but a lead can still end
+ * up ownerless: no rule matched it, the pool was empty at 2am, or it predates
+ * the rule set. Those leads are invisible in practice — they belong to nobody,
+ * so nobody opens them. This sweep is what makes "leads are distributed every
+ * morning" true rather than aspirational, and it is safe to run repeatedly:
+ * a lead with an owner is never touched.
+ */
+export async function distributeUnassigned(): Promise<SweepResult> {
+  const ranAt = new Date().toISOString();
+  const all = await db.leads.list();
+  const unowned = all.filter((l) => !l.ownerId && l.status !== "LOST");
+
+  if (unowned.length === 0) {
+    return { considered: 0, assigned: 0, remaining: 0, perAgent: [], ranAt };
+  }
+
+  // Oldest first: someone who enquired on Friday is called before someone who
+  // enquired this morning.
+  unowned.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+
+  const [assignments, users] = await Promise.all([
+    autoAssignMany(unowned),
+    listAssignableUsers(),
+  ]);
+  const nameById = new Map(users.map((u) => [u.id, u.name]));
+  const tally = new Map<string, number>();
+
+  const now = new Date().toISOString();
+  for (const [leadId, ownerId] of assignments) {
+    await db.leads.update(leadId, { ownerId, updatedAt: now });
+    // autoAssign() leaves a note when it places a single lead; the batch path
+    // returns a map and writes nothing, so the note is written here. Without
+    // it a lead simply appears in someone's list with no explanation.
+    await db.activities.create({
+      type: "NOTE",
+      leadId,
+      userId: ownerId,
+      subject: `Assigned to ${nameById.get(ownerId) ?? "you"} in the daily distribution`,
+      body: "Picked up by the morning sweep of unassigned leads.",
+      completed: true,
+      createdAt: now,
+    });
+    tally.set(ownerId, (tally.get(ownerId) ?? 0) + 1);
+  }
+
+  return {
+    considered: unowned.length,
+    assigned: assignments.size,
+    remaining: unowned.length - assignments.size,
+    perAgent: [...tally.entries()]
+      .map(([userId, count]) => ({ userId, name: nameById.get(userId) ?? "Unknown", count }))
+      .sort((a, b) => b.count - a.count),
+    ranAt,
+  };
+}

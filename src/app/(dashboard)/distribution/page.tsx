@@ -6,7 +6,9 @@ import { Badge, statusTone } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState, PageHeader } from "@/components/ui/misc";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { db } from "@/server/db";
 import { RuleForm } from "@/components/leads/rule-form";
+import { DistributeNow } from "@/components/leads/distribute-now";
 import { RuleToggle } from "@/components/leads/rule-toggle";
 import { can } from "@/server/auth/rbac";
 import { requirePermission } from "@/server/auth/guard";
@@ -19,20 +21,22 @@ import { getLeadFormOptions } from "@/server/modules/leads";
 import { formatDate, humanize } from "@/lib/utils";
 
 export default async function DistributionPage() {
-  const [user, rules, options] = await Promise.all([
+  const [user, rules, options, leads] = await Promise.all([
     requirePermission("lead.assign"),
     listRules(),
     getLeadFormOptions(),
+    db.leads.list(),
   ]);
   const canManage = can(user.role, "lead.assign");
+  const unassigned = leads.filter((l) => !l.ownerId && l.status !== "LOST").length;
   const activeCount = rules.filter((r) => r.active).length;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Lead Distribution"
-        description={`Automatic lead routing — ${activeCount} of ${rules.length} rules active. New leads without an owner are matched against active rules in priority order.`}
-        actions={canManage ? undefined : <Badge tone="muted">Read-only access</Badge>}
+        description={`Automatic lead routing — ${activeCount} of ${rules.length} rules active. New leads are matched against active rules in priority order as they arrive, and anything still ownerless is swept up each morning.`}
+        actions={canManage ? <DistributeNow unassigned={unassigned} /> : <Badge tone="muted">Read-only access</Badge>}
       />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">

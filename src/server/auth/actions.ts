@@ -86,7 +86,10 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   await db.users.update(user.id, patch);
 
   await startSession(user.id);
-  redirect(user.mustChangePassword ? "/account/password" : "/dashboard");
+  // Whoever works leads for a living starts on their agenda, not on six
+  // months of trend charts. Everyone else keeps landing on the dashboard.
+  const home = user.role === "SALES_AGENT" || user.role === "SALES_MANAGER" ? "/my-day" : "/dashboard";
+  redirect(user.mustChangePassword ? "/account/password" : home);
 }
 
 export async function signOut(): Promise<void> {

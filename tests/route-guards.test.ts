@@ -67,15 +67,33 @@ describe("API route guards", () => {
   const routes = findFiles(API_DIR, (n) => n === "route.ts" || n === "route.tsx");
   const API_GUARDS = ["getSessionUser(", "requirePermission(", "requireAnyPermission("];
 
+  /**
+   * Routes a scheduler calls have no session to resolve, so they authenticate
+   * with a shared secret instead. They are listed here by name: the exemption
+   * is deliberate and reviewable, not a hole any new file can fall through.
+   */
+  const SCHEDULED_ROUTES = new Set(["src/app/api/cron/distribute/route.ts"]);
+
   it("finds the API routes", () => {
     expect(routes.length).toBeGreaterThanOrEqual(3);
   });
 
-  it.each(routes.map((p) => [p.replace(process.cwd() + "/", ""), p]))("%s authenticates", (_label, path) => {
+  it.each(routes.map((p) => [p.replace(process.cwd() + "/", ""), p]))("%s authenticates", (label, path) => {
     const source = readFileSync(path, "utf8");
+
+    if (SCHEDULED_ROUTES.has(label)) {
+      // A secret-guarded route must compare in constant time, and must refuse
+      // to serve at all when the secret is unset — failing closed, so a
+      // half-configured deployment cannot expose a write endpoint.
+      expect(source.includes("CRON_SECRET"), `${label} must verify CRON_SECRET`).toBe(true);
+      expect(source.includes("timingSafeEqual"), `${label} must compare the secret in constant time`).toBe(true);
+      expect(/if \(!expected\)/.test(source), `${label} must refuse when CRON_SECRET is unset`).toBe(true);
+      return;
+    }
+
     expect(
       API_GUARDS.some((g) => source.includes(g)),
-      `${path} serves without resolving the session. Every route under src/app/api must call getSessionUser() or a permission guard.`,
+      `${path} serves without resolving the session. Every route under src/app/api must call getSessionUser() or a permission guard, or be listed as a scheduled route that verifies a shared secret.`,
     ).toBe(true);
   });
 });
