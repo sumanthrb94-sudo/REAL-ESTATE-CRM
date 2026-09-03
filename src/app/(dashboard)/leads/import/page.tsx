@@ -21,7 +21,7 @@ export default async function ImportLeadsPage() {
 
       <PageHeader
         title="Import leads"
-        description="Bring in leads from Instagram, Meta Ads Manager, a portal export or a spreadsheet."
+        description="Meta lead ads, WhatsApp, your website, a portal export or an offline register — Excel or CSV, one way in."
       />
 
       <ImportWizard />
