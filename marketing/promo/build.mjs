@@ -52,7 +52,46 @@ function planSubtitles(text, start, duration, maxWords = 4, maxChars = 26) {
   return chunks;
 }
 
-const W = 1080, H = 1920;
+// ── Format ──────────────────────────────────────────────────────────────────
+//
+// One composition, three placements. A Reel is not a square with the sides
+// chopped off: the chrome is different, the safe area is different, and the
+// hero has to be re-staged rather than re-cropped — a laptop that fills a
+// 9:16 frame is a letterboxed sliver in 1:1.
+//
+//   FORMAT=9x16  Reels, Stories          1080×1920  (default)
+//   FORMAT=4x5   Feed, the tallest post  1080×1350
+//   FORMAT=1x1   Feed, square            1080×1080
+//
+// Only the feed carries UI over the video in any real sense, so the square and
+// portrait cuts reclaim most of the reserved band and stage their content
+// larger.
+const FORMATS = {
+  "9x16": { w: 1080, h: 1920, safe: { top: 260, bottom: 430, side: 60, rail: 200 }, heroTop: 520, heroScale: 1, cam: 1, type: 1 },
+  "4x5":  { w: 1080, h: 1350, safe: { top: 90,  bottom: 190, side: 60, rail: 0 },   heroTop: 330, heroScale: 0.92, cam: 0.55, type: 0.82 },
+  "1x1":  { w: 1080, h: 1080, safe: { top: 80,  bottom: 150, side: 60, rail: 0 },   heroTop: 250, heroScale: 0.8, cam: 0.3, type: 0.68 },
+};
+const FORMAT = FORMATS[process.env.FORMAT ?? "9x16"];
+if (!FORMAT) throw new Error(`Unknown FORMAT. Use one of: ${Object.keys(FORMATS).join(", ")}.`);
+const FORMAT_ID = process.env.FORMAT ?? "9x16";
+
+// A punch-in that reads on a tall frame throws the subject clean out of a
+// square one: there is simply less frame to travel across. Both the zoom and
+// the offset are scaled by the format rather than re-tuned by hand.
+// Type scales with the frame: 112px headlines that read on a 1920-tall Reel
+// collide with the subtitles on a 1080 square.
+const pt = (px) => `${Math.round(px * FORMAT.type)}px`;
+
+const cam = (scale, x, y) => ({
+  scale: Math.round((1 + (scale - 1) * FORMAT.cam) * 1000) / 1000,
+  x: Math.round(x * FORMAT.cam),
+  y: Math.round(y * FORMAT.cam),
+});
+
+const W = FORMAT.w, H = FORMAT.h;
+
+// The strike-through bar, thinned with the type it crosses out.
+const STRIKE_H = Math.max(6, Math.round(10 * FORMAT.type));
 
 // ── Meta safe zones ─────────────────────────────────────────────────────────
 //
@@ -66,7 +105,7 @@ const W = 1080, H = 1920;
 // a margin, because the chrome grows when a caption wraps to a second line.
 // Set SAFE_ZONES=1 when building to draw the boundaries over the render and
 // check by eye rather than by arithmetic.
-const SAFE = { top: 260, bottom: 430, side: 60, rail: 200 };
+const SAFE = FORMAT.safe;
 const SAFE_BOTTOM_Y = H - SAFE.bottom; // 1490 — nothing readable below this
 const SHOW_SAFE = process.env.SAFE_ZONES === "1";
 const timings = JSON.parse(fs.readFileSync(new URL("./timings.json", import.meta.url), "utf8"));
@@ -173,7 +212,7 @@ const html = `<!doctype html>
       background: radial-gradient(circle, rgba(47,99,255,0.42) 0%, rgba(47,99,255,0) 60%); }
     .clip { position: absolute; inset: 0; width: 100%; height: 100%; }
     .inner { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .brand { position: absolute; top: ${SAFE.top}px; left: ${SAFE.side + 24}px; display: flex; align-items: center; gap: 18px; font-size: 40px; font-weight: 700; }
+    .brand { position: absolute; top: ${SAFE.top}px; left: ${SAFE.side + 24}px; display: flex; align-items: center; gap: 18px; font-size: ${pt(40)}; font-weight: 700; }
     .brand .mark { display: block; width: 56px; height: 56px; border-radius: 14px; background: ${C.blue}; }
     .brand .mark::after { content: ""; position: absolute; width: 24px; height: 30px; margin: 13px 16px; border: 4px solid #fff; border-radius: 4px; }
     /* Anchored to the bottom of the safe area and growing upward, so a
@@ -181,7 +220,7 @@ const html = `<!doctype html>
        Centred, because a short chunk pinned left drifts around the frame. */
     .sub { position: absolute; left: ${SAFE.side + 24}px; right: ${SAFE.side + 24}px;
       bottom: ${SAFE.bottom + 40}px; text-align: center;
-      font-size: 62px; font-weight: 700; line-height: 1.2; letter-spacing: -0.5px;
+      font-size: ${pt(62)}; font-weight: 700; line-height: 1.2; letter-spacing: -0.5px;
       color: ${C.ink}; opacity: 0; }
     .sub b { display: inline-block; padding: 14px 26px; border-radius: 14px;
       background: rgba(6,10,20,0.82); box-shadow: 0 6px 30px rgba(0,0,0,0.5); font-weight: 700; }
@@ -195,21 +234,31 @@ const html = `<!doctype html>
     .sub span.on { color: ${C.blueSoft}; }
 
     /* hook */
-    .kinetic { position: absolute; left: ${SAFE.side + 24}px; right: ${SAFE.side + 24}px; top: 560px; display: flex; flex-direction: column; gap: 22px; }
-    .kinetic .line { display: block; font-size: 112px; font-weight: 700; line-height: 1.0; letter-spacing: -2px; }
+    /* align-items: flex-start so each line shrinks to its own text width — the
+       strike-through is a child of line two and spans left:0/right:0, which is
+       only the right length if the line is not stretched to the column. */
+    .kinetic { position: absolute; left: ${SAFE.side + 24}px; right: ${SAFE.side + 24}px; top: ${Math.round(H * 0.29)}px; display: flex; flex-direction: column; align-items: flex-start; gap: ${Math.round(22 * FORMAT.type)}px; }
+    .kinetic .line { position: relative; display: block; font-size: ${pt(112)}; font-weight: 700; line-height: 1.0; letter-spacing: -2px; }
     .kinetic .line.dim { color: ${C.muted}; }
-    .kinetic .q { display: block; margin-top: 44px; font-size: 64px; font-weight: 600; color: ${C.blueSoft}; }
-    .strike { position: absolute; left: 84px; width: 700px; height: 10px; background: ${C.red}; transform-origin: 0 50%; border-radius: 6px; }
+    .kinetic .q { display: block; margin-top: ${Math.round(44 * FORMAT.type)}px; font-size: ${pt(64)}; font-weight: 600; color: ${C.blueSoft}; }
+    /* Centred on line two's own box rather than a tuned offset: the hook wraps
+       at 9:16 and does not at 1:1, so any fixed top lands somewhere different
+       in each format. No CSS transform here — GSAP owns scaleX. */
+    .strike { position: absolute; left: 0; right: 0; top: calc(50% - ${Math.round(STRIKE_H / 2)}px); height: ${STRIKE_H}px; background: ${C.red}; transform-origin: 0 50%; border-radius: ${Math.round(STRIKE_H * 0.6)}px; }
 
     /* devices */
-    .laptop { position: absolute; left: 60px; top: 520px; width: 960px; }
+    /* Centred rather than left-aligned on the feed formats: a 9:16 frame has
+       room for an off-centre hero, a square one does not, and the camera push
+       was clipping the laptop against the left edge. */
+    .laptop { position: absolute; left: ${FORMAT_ID === "9x16" ? 60 : Math.round((W - 960 * FORMAT.heroScale) / 2)}px;
+      top: ${FORMAT.heroTop}px; width: ${Math.round(960 * FORMAT.heroScale)}px; }
     .laptop .lid { display: block; padding: 16px; border-radius: 26px; background: #1f2937; box-shadow: 0 40px 120px rgba(0,0,0,0.6), inset 0 0 0 2px #374151; }
     .laptop .screen { display: block; width: 100%; aspect-ratio: 16 / 10; border-radius: 14px; overflow: hidden; background: #fff; position: relative; }
     .laptop .screen img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top left; }
     .laptop .base { display: block; margin: 0 auto; width: 92%; height: 22px; border-radius: 0 0 22px 22px; background: linear-gradient(#374151, #111827); }
     .world { position: absolute; inset: 0; }
 
-    .phone { position: absolute; left: 300px; top: 480px; width: 480px; }
+    .phone { position: absolute; left: ${Math.round((W - 480 * FORMAT.heroScale) / 2)}px; top: ${FORMAT.heroTop - 40}px; width: ${Math.round(480 * FORMAT.heroScale)}px; }
     .phone .body { display: block; padding: 18px; border-radius: 72px; background: #0f172a; box-shadow: 0 40px 120px rgba(0,0,0,0.6), inset 0 0 0 3px #334155; }
     .phone .screen { display: block; width: 100%; aspect-ratio: 390 / 844; border-radius: 54px; overflow: hidden; background: #fff; position: relative; }
     .phone .screen img { display: block; width: 100%; }
@@ -227,21 +276,21 @@ const html = `<!doctype html>
     .notif .s { display: block; font-size: 26px; color: #334155; margin-top: 4px; }
 
     /* inventory cards */
-    .stack { position: absolute; left: 0; top: 440px; width: ${W}px; height: 1000px; }
+    .stack { position: absolute; left: 0; top: ${FORMAT.heroTop - 80}px; width: ${W}px; height: ${Math.round(1000 * FORMAT.heroScale)}px; }
     .card { position: absolute; left: 90px; width: 900px; border-radius: 22px; overflow: hidden; background: #fff; box-shadow: 0 30px 90px rgba(0,0,0,0.55); }
     .card img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: top left; }
     .card .label { position: absolute; left: 22px; top: 22px; padding: 12px 20px; border-radius: 12px; background: #0f172a; color: #fff; font-size: 28px; font-weight: 600; }
     #card-inv { top: 0; } #card-book { top: 200px; } #card-rep { top: 400px; }
 
     /* cta */
-    .end { position: absolute; left: ${SAFE.side + 24}px; right: ${SAFE.side + 24}px; top: 560px; display: flex; flex-direction: column; align-items: flex-start; }
-    .end .wordmark { display: flex; align-items: center; gap: 26px; font-size: 104px; font-weight: 700; letter-spacing: -2px; }
+    .end { position: absolute; left: ${SAFE.side + 24}px; right: ${SAFE.side + 24}px; top: ${Math.round(H * 0.29)}px; display: flex; flex-direction: column; align-items: flex-start; }
+    .end .wordmark { display: flex; align-items: center; gap: 26px; font-size: ${pt(104)}; font-weight: 700; letter-spacing: -2px; }
     .end .wordmark .mark { display: block; width: 110px; height: 110px; border-radius: 28px; background: ${C.blue}; position: relative; }
     .end .wordmark .mark::after { content: ""; position: absolute; width: 46px; height: 58px; left: 32px; top: 26px; border: 7px solid #fff; border-radius: 8px; }
-    .end .tag { display: block; margin-top: 30px; font-size: 52px; color: ${C.muted}; }
-    .end .for { display: block; margin-top: 90px; font-size: 34px; letter-spacing: 5px; text-transform: uppercase; color: ${C.blueSoft}; font-weight: 600; }
-    .end .btn { display: inline-block; margin-top: 26px; padding: 30px 52px; border-radius: 22px; background: ${C.blue}; color: #fff; font-size: 52px; font-weight: 700; }
-    .end .note { display: block; margin-top: 24px; font-size: 32px; color: ${C.muted}; }
+    .end .tag { display: block; margin-top: ${Math.round(30 * FORMAT.type)}px; font-size: ${pt(52)}; color: ${C.muted}; }
+    .end .for { display: block; margin-top: ${Math.round(90 * FORMAT.type)}px; font-size: ${pt(34)}; letter-spacing: 5px; text-transform: uppercase; color: ${C.blueSoft}; font-weight: 600; }
+    .end .btn { display: inline-block; margin-top: 26px; padding: 30px 52px; border-radius: 22px; background: ${C.blue}; color: #fff; font-size: ${pt(52)}; font-weight: 700; }
+    .end .note { display: block; margin-top: 24px; font-size: ${pt(32)}; color: ${C.muted}; }
     /* Build-time overlay: the boundaries Instagram's chrome will cover. */
     .safe-guide { position: absolute; inset: 0; pointer-events: none; z-index: 999; }
     .safe-guide i { position: absolute; left: 0; right: 0; background: rgba(239,68,68,0.28); }
@@ -251,7 +300,7 @@ const html = `<!doctype html>
   </style>
 </head>
 <body>
-  <div id="root" data-composition-id="estatecrm-promo" data-start="0" data-duration="${TOTAL}" data-width="${W}" data-height="${H}">
+  <div id="root" data-composition-id="estatecrm-promo-${FORMAT_ID}" data-start="0" data-duration="${TOTAL}" data-width="${W}" data-height="${H}">
     <div class="bg"></div>
     <div class="grid" id="grid"></div>
     <div class="glow" id="glow"></div>
@@ -263,11 +312,10 @@ const html = `<!doctype html>
       <div id="hook-inner" class="inner">
         <div class="kinetic">
           <span class="line dim" id="k1">WhatsApp forwards.</span>
-          <span class="line dim" id="k2">One spreadsheet.</span>
+          <span class="line dim" id="k2">One spreadsheet.<span class="strike" id="strike"></span></span>
           <span class="line" id="k3">Missed follow-ups.</span>
           <span class="q" id="k4">Still running sales like this?</span>
         </div>
-        <span class="strike" id="strike" style="top: 880px;"></span>
       </div>
     </section>
 
@@ -280,7 +328,7 @@ const html = `<!doctype html>
             <span class="base"></span>
           </div>
         </div>
-        <div class="chip" id="dash-chip" style="left: 540px; top: 1120px;"><span class="dot"></span><span>Pipeline ₹7.23 Cr<small>live, right now</small></span></div>
+        <div class="chip" id="dash-chip" style="left: ${FORMAT_ID === "9x16" ? 540 : Math.round(W * 0.34)}px; top: ${Math.round(H * 0.583)}px;"><span class="dot"></span><span>Pipeline ₹7.23 Cr<small>live, right now</small></span></div>
       </div>
     </section>
 
@@ -297,7 +345,7 @@ const html = `<!doctype html>
             <span class="base"></span>
           </div>
         </div>
-        <div class="chip" id="leads-chip" style="left: 470px; top: 1090px;"><span class="dot"></span><span>Assigned to Rohan Kapoor<small>Instagram lead · 4 seconds</small></span></div>
+        <div class="chip" id="leads-chip" style="left: ${FORMAT_ID === "9x16" ? 470 : Math.round(W * 0.30)}px; top: ${Math.round(H * 0.568)}px;"><span class="dot"></span><span>Assigned to Rohan Kapoor<small>Instagram lead · 4 seconds</small></span></div>
       </div>
     </section>
 
@@ -351,7 +399,9 @@ const html = `<!doctype html>
     // ambient: glow drifts once across the whole piece; brand mark fades in after the hook
     tl.fromTo("#glow", { x: 0, y: 0 }, { x: 260, y: 420, duration: ${TOTAL}, ease: "sine.inOut" }, 0);
     tl.fromTo("#brand", { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, T.dash.start + 0.1);
-    tl.to("#brand", { opacity: 0, duration: 0.3 }, T.cta.start);
+    // Out before the card stack rather than at the very end: on the short feed
+    // formats the stack rises into the brand mark's corner.
+    tl.to("#brand", { opacity: 0, duration: 0.3 }, T.inv.start - 0.3);
 
     // Subtitles. Each chunk pops in on its own window and is hidden again at
     // its end; the spoken word is picked out by colour alone, because moving or
@@ -380,14 +430,14 @@ const html = `<!doctype html>
 
     // 2 · dashboard — laptop rises, camera pushes into the KPI row, ring + chip
     tl.fromTo("#dash-laptop", { y: 220, opacity: 0, scale: 0.94, transformOrigin: "50% 50%" }, { y: 0, opacity: 1, scale: 1, duration: 0.7, ease: "power3.out" }, T.dash.start + 0.05);
-    tl.fromTo("#dash-world", { scale: 1, x: 0, y: 0, transformOrigin: "50% 50%" }, { scale: 1.32, x: -40, y: 250, duration: 1.1, ease: "power2.inOut" }, T.dash.start + 1.1);
+    tl.fromTo("#dash-world", { scale: 1, x: 0, y: 0, transformOrigin: "50% 50%" }, { ...${JSON.stringify(cam(1.32, -40, 250))}, duration: 1.1, ease: "power2.inOut" }, T.dash.start + 1.1);
     tl.fromTo("#dash-ring", { opacity: 0, scale: 1.3, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2)" }, T.dash.start + 1.9);
     tl.fromTo("#dash-chip", { y: 40, opacity: 0, scale: 0.9, transformOrigin: "0 50%" }, { y: 0, opacity: 1, scale: 1, duration: 0.45, ease: "back.out(1.6)" }, T.dash.start + 2.2);
     exit("#dash-inner", T.dash.end);
 
     // 3 · leads — slide in from the right, rows light up in sequence, assignment chip
     tl.fromTo("#leads-laptop", { x: 320, opacity: 0 }, { x: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, T.leads.start + 0.05);
-    tl.fromTo("#leads-world", { scale: 1, x: 0, y: 0, transformOrigin: "50% 50%" }, { scale: 1.45, x: -120, y: -260, duration: 1.0, ease: "power2.inOut" }, T.leads.start + 0.55);
+    tl.fromTo("#leads-world", { scale: 1, x: 0, y: 0, transformOrigin: "50% 50%" }, { ...${JSON.stringify(cam(1.45, -120, -260))}, duration: 1.0, ease: "power2.inOut" }, T.leads.start + 0.55);
     tl.fromTo("#row-1", { opacity: 0 }, { opacity: 1, duration: 0.12 }, T.leads.start + 1.05);
     tl.fromTo("#row-2", { opacity: 0 }, { opacity: 1, duration: 0.12 }, T.leads.start + 1.25);
     tl.fromTo("#row-3", { opacity: 0 }, { opacity: 1, duration: 0.12 }, T.leads.start + 1.45);
@@ -415,7 +465,7 @@ const html = `<!doctype html>
     tl.fromTo("#btn", { scale: 0.7, opacity: 0, transformOrigin: "0 50%" }, { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(2)" }, T.cta.start + 1.3);
     tl.fromTo("#note", up, { ...settle, duration: 0.45 }, T.cta.start + 1.7);
 
-    window.__timelines["estatecrm-promo"] = tl;
+    window.__timelines["estatecrm-promo-${FORMAT_ID}"] = tl;
   </script>
 </body>
 </html>
@@ -423,4 +473,4 @@ const html = `<!doctype html>
 
 fs.writeFileSync(new URL("./index.html", import.meta.url), html);
 console.log(`index.html · ${TOTAL}s · scenes:`, scenes.map((s) => `${s.id}@${f2(s.start)}`).join(" "));
-console.log(`safe area: y ${SAFE.top}–${SAFE_BOTTOM_Y} of ${H}${SHOW_SAFE ? " · guides ON" : ""}`);
+console.log(`format ${FORMAT_ID} · ${W}×${H} · safe area y ${SAFE.top}–${SAFE_BOTTOM_Y}${SHOW_SAFE ? " · guides ON" : ""}`);
