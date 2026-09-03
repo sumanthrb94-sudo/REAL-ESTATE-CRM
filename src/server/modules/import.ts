@@ -7,8 +7,10 @@
 
 import { db } from "@/server/db";
 import { parseCsv, detectDelimiter } from "@/lib/csv";
+import { readWorkbook, type Workbook } from "@/lib/spreadsheet";
 import { autoAssignMany } from "@/server/modules/distribution";
 import {
+  CHANNEL_PRESETS,
   FIELD_LABELS,
   IMPORT_FIELDS,
   REQUIRED_FIELDS,
@@ -29,6 +31,9 @@ export {
   IMPORT_FIELDS,
   FIELD_LABELS,
   REQUIRED_FIELDS,
+  TEMPLATE_COLUMNS,
+  CHANNEL_PRESETS,
+  templateCsv,
   type ImportField,
   type ImportMapping,
 } from "@/lib/import-fields";
@@ -38,47 +43,65 @@ export {
  * mapping. Matching is case- and punctuation-insensitive.
  */
 const HEADER_HINTS: Record<ImportField, string[]> = {
-  name: ["name", "fullname", "full name", "leadname", "customername", "contactname", "firstname"],
-  phone: ["phone", "phonenumber", "mobile", "mobilenumber", "contact", "contactnumber", "whatsapp"],
-  email: ["email", "emailaddress", "mail", "e-mail"],
-  source: ["source", "leadsource", "channel", "platform", "medium"],
+  name: ["name", "fullname", "full name", "leadname", "customername", "contactname", "firstname", "full_name", "customer_name", "clientname"],
+  phone: ["phone", "phonenumber", "mobile", "mobilenumber", "contact", "contactnumber", "whatsapp", "phone_number", "waid", "wa_id", "cell"],
+  email: ["email", "emailaddress", "mail", "e-mail", "email_address"],
+  source: ["source", "leadsource", "channel", "platform", "medium", "utmsource"],
   status: ["status", "stage", "leadstatus", "pipelinestage"],
   temperature: ["temperature", "temp", "priority", "quality"],
   budgetMin: ["budgetmin", "minbudget", "budgetfrom", "minimumbudget"],
   budgetMax: ["budgetmax", "maxbudget", "budgetto", "maximumbudget", "budget"],
-  requirement: ["requirement", "requirements", "notes", "message", "comments", "enquiry", "remarks"],
-  projectName: ["project", "projectname", "interestedproject", "property"],
-  tags: ["tags", "labels", "campaign", "adname", "adsetname"],
-  createdAt: ["createdat", "created", "date", "createdtime", "submittedat", "timestamp"],
+  requirement: ["requirement", "requirements", "notes", "message", "comments", "enquiry", "remarks", "lastmessage", "query"],
+  projectName: ["project", "projectname", "interestedproject", "property", "whichprojectareyouinterestedin"],
+  tags: ["tags", "labels", "campaign", "adname", "adsetname", "campaignname", "formname"],
+  createdAt: ["createdat", "created", "date", "createdtime", "submittedat", "timestamp", "postedon", "enquirydate"],
 };
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-/** Best-guess column → field mapping. Each field is claimed at most once. */
+/**
+ * Best-guess column → field mapping. Each field is claimed at most once.
+ *
+ * Exact header matches are resolved across the whole row before any fuzzy
+ * match is considered. Column order would otherwise decide the outcome: a Meta
+ * export puts `campaign_name` five columns ahead of `full_name`, and since
+ * "campaignname" contains "name" the campaign column used to claim the Name
+ * field and the actual name went unmapped — an import that looked fine and
+ * filed every lead under its ad set.
+ */
 export function suggestMapping(headers: string[]): Record<number, ImportField | ""> {
   const mapping: Record<number, ImportField | ""> = {};
   const claimed = new Set<ImportField>();
+  const normed = headers.map((h) => norm(h));
 
-  headers.forEach((header, index) => {
-    const h = norm(header);
-    if (!h) {
-      mapping[index] = "";
-      return;
-    }
-    // Exact hint first, then a prefix/contains fallback.
-    const exact = IMPORT_FIELDS.find(
+  headers.forEach((_, i) => (mapping[i] = ""));
+
+  // Pass 1 — exact header text, anywhere in the row.
+  normed.forEach((h, index) => {
+    if (!h) return;
+    const field = IMPORT_FIELDS.find(
       (f) => !claimed.has(f) && HEADER_HINTS[f].some((hint) => norm(hint) === h),
     );
-    const fuzzy =
-      exact ??
-      IMPORT_FIELDS.find(
-        (f) => !claimed.has(f) && HEADER_HINTS[f].some((hint) => h.includes(norm(hint))),
-      );
-    if (fuzzy) {
-      claimed.add(fuzzy);
-      mapping[index] = fuzzy;
-    } else {
-      mapping[index] = "";
+    if (field) {
+      claimed.add(field);
+      mapping[index] = field;
+    }
+  });
+
+  // Pass 2 — substring, longest hint first so "full_name" outranks "name".
+  normed.forEach((h, index) => {
+    if (!h || mapping[index]) return;
+    let best: { field: ImportField; length: number } | null = null;
+    for (const f of IMPORT_FIELDS) {
+      if (claimed.has(f)) continue;
+      for (const hint of HEADER_HINTS[f]) {
+        const n = norm(hint);
+        if (n && h.includes(n) && (!best || n.length > best.length)) best = { field: f, length: n.length };
+      }
+    }
+    if (best) {
+      claimed.add(best.field);
+      mapping[index] = best.field;
     }
   });
 
@@ -180,6 +203,30 @@ export interface RowIssue {
   message: string;
 }
 
+/**
+ * What to do when a row is already in the CRM.
+ *
+ * `merge` is the default because a repeat enquiry is information, not noise:
+ * the same buyer coming back through a second channel is the strongest signal
+ * the desk gets, and deleting it — which is what skipping quietly does — loses
+ * the second source, the newer budget and the newer requirement.
+ */
+export type DuplicateStrategy = "merge" | "skip" | "create";
+
+/** One planned merge, shown before it happens and applied unchanged after. */
+export interface MergePlan {
+  rowNumber: number;
+  leadId: string;
+  existingName: string;
+  incomingName: string;
+  phone: string;
+  matchedOn: "phone" | "email";
+  /** Human-readable summary of what this merge would change. */
+  changes: string[];
+  patch: Partial<Lead>;
+  note: string;
+}
+
 export interface ImportPreview {
   headers: string[];
   /** First few rows, for the mapping table. */
@@ -189,11 +236,17 @@ export interface ImportPreview {
   valid: number;
   duplicatesInFile: number;
   duplicatesInDb: number;
+  /** Every planned merge, so the user sees exactly what combining does. */
+  merges: MergePlan[];
   errors: RowIssue[];
+  /** Detected channel, when the headers identify one. */
+  channel?: string;
+  format?: string;
 }
 
 export interface ImportResult {
   created: number;
+  merged: number;
   skipped: number;
   errors: RowIssue[];
 }
@@ -215,9 +268,11 @@ async function prepare(
   headers: string[],
   rows: string[][],
   mapping: Record<number, ImportField | "">,
-  skipDuplicates: boolean,
+  strategy: DuplicateStrategy,
+  fileLabel = "an upload",
 ): Promise<{
   prepared: PreparedRow[];
+  merges: MergePlan[];
   errors: RowIssue[];
   duplicatesInFile: number;
   duplicatesInDb: number;
@@ -235,10 +290,23 @@ async function prepare(
   }
 
   const [existingLeads, projects] = await Promise.all([db.leads.list(), db.projects.list()]);
-  const existingPhones = new Set(existingLeads.map((l) => normalisePhone(l.phone)));
+  // Phone is the primary key; email is the fallback for the case where the
+  // same buyer filled a form twice from two numbers, which portals produce
+  // often enough to matter.
+  const byPhone = new Map<string, Lead>();
+  const byEmail = new Map<string, Lead>();
+  for (const l of existingLeads) {
+    const k = normalisePhone(l.phone);
+    if (k) byPhone.set(k, l);
+    if (l.email) byEmail.set(l.email.trim().toLowerCase(), l);
+  }
   const projectByName = new Map(projects.map((p) => [p.name.toLowerCase().trim(), p.id]));
 
-  const seenInFile = new Set<string>();
+  const seenInFile = new Map<string, number>();
+  const merges: MergePlan[] = [];
+  // A file can name the same person twice; merge those into one patch rather
+  // than applying two conflicting ones.
+  const mergeByLeadId = new Map<string, MergePlan>();
   let duplicatesInFile = 0;
   let duplicatesInDb = 0;
   const now = new Date().toISOString();
@@ -265,25 +333,12 @@ async function prepare(
       return;
     }
 
-    if (seenInFile.has(phoneKey)) {
-      duplicatesInFile++;
-      if (skipDuplicates) return;
-    }
-    if (existingPhones.has(phoneKey)) {
-      duplicatesInDb++;
-      if (skipDuplicates) return;
-    }
-    seenInFile.add(phoneKey);
-
     const email = cell("email");
     const projectName = cell("projectName").toLowerCase();
     const tagsRaw = cell("tags");
     const createdAt = parseDate(cell("createdAt")) ?? now;
 
-    prepared.push({
-      rowNumber,
-      phoneKey,
-      lead: {
+    const incoming: Omit<Lead, "id"> = {
         name,
         phone: phoneRaw,
         email: email || undefined,
@@ -303,17 +358,186 @@ async function prepare(
           : [],
         createdAt,
         updatedAt: now,
-      },
-    });
+    };
+
+    // Already seen in this same file?
+    if (seenInFile.has(phoneKey)) {
+      duplicatesInFile++;
+      if (strategy !== "create") {
+        const firstRow = seenInFile.get(phoneKey)!;
+        const earlier = prepared.find((r) => r.rowNumber === firstRow);
+        if (earlier) {
+          // Fold the later row into the earlier one rather than dropping it.
+          const folded = mergeLead(earlier.lead as Lead, incoming, fileLabel, rowNumber);
+          Object.assign(earlier.lead, folded.patch);
+        } else {
+          // The earlier row merged into an existing lead; extend that plan.
+          const existing = byPhone.get(phoneKey);
+          const plan = existing ? mergeByLeadId.get(existing.id) : undefined;
+          if (plan) extendPlan(plan, existing!, incoming, fileLabel, rowNumber);
+        }
+        return;
+      }
+    }
+
+    // Already in the CRM?
+    const match =
+      byPhone.get(phoneKey) ?? (email ? byEmail.get(email.trim().toLowerCase()) : undefined);
+    if (match) {
+      duplicatesInDb++;
+      if (strategy === "skip") return;
+      if (strategy === "merge") {
+        const existingPlan = mergeByLeadId.get(match.id);
+        if (existingPlan) {
+          extendPlan(existingPlan, match, incoming, fileLabel, rowNumber);
+        } else {
+          const matchedOn = byPhone.has(phoneKey) ? "phone" : "email";
+          const plan = mergeLead(match, incoming, fileLabel, rowNumber, matchedOn);
+          mergeByLeadId.set(match.id, plan);
+          merges.push(plan);
+        }
+        seenInFile.set(phoneKey, rowNumber);
+        return;
+      }
+    }
+
+    seenInFile.set(phoneKey, rowNumber);
+    prepared.push({ rowNumber, phoneKey, lead: incoming });
   });
 
-  return { prepared, errors, duplicatesInFile, duplicatesInDb };
+  return { prepared, merges, errors, duplicatesInFile, duplicatesInDb };
+}
+
+// ─── Merging ────────────────────────────────────────────────────────────────
+
+const TEMPERATURE_RANK: Record<LeadTemperature, number> = { COLD: 0, WARM: 1, HOT: 2 };
+
+/**
+ * Combine an incoming row into an existing lead without ever destroying what
+ * is already known.
+ *
+ * Blank fields are filled, tags are unioned, the requirement is appended as a
+ * new line, the budget widens to cover both figures and the temperature only
+ * ever rises. Source and stage are left alone: the first touch keeps the
+ * attribution, and an import must not drag a negotiating lead back to New.
+ */
+export function mergeLead(
+  existing: Lead,
+  incoming: Omit<Lead, "id">,
+  fileLabel: string,
+  rowNumber: number,
+  matchedOn: "phone" | "email" = "phone",
+): MergePlan {
+  const patch: Partial<Lead> = {};
+  const changes: string[] = [];
+
+  // Matched by email on a number we have never seen: that second number is
+  // the most useful thing in the row, and the lead carries only one phone
+  // field, so it goes on the timeline where a caller will find it.
+  const altPhone =
+    normalisePhone(incoming.phone) &&
+    normalisePhone(incoming.phone) !== normalisePhone(existing.phone)
+      ? incoming.phone.trim()
+      : "";
+  if (altPhone) changes.push(`second number ${altPhone}`);
+
+  if (!existing.email && incoming.email) {
+    patch.email = incoming.email;
+    changes.push(`email ${incoming.email}`);
+  }
+  if (!existing.projectId && incoming.projectId) {
+    patch.projectId = incoming.projectId;
+    changes.push("interested project");
+  }
+
+  const minA = existing.budgetMin, minB = incoming.budgetMin;
+  const nextMin = minA != null && minB != null ? Math.min(minA, minB) : (minA ?? minB);
+  if (nextMin != null && nextMin !== existing.budgetMin) {
+    patch.budgetMin = nextMin;
+    changes.push("budget floor");
+  }
+  const maxA = existing.budgetMax, maxB = incoming.budgetMax;
+  const nextMax = maxA != null && maxB != null ? Math.max(maxA, maxB) : (maxA ?? maxB);
+  if (nextMax != null && nextMax !== existing.budgetMax) {
+    patch.budgetMax = nextMax;
+    changes.push("budget ceiling");
+  }
+
+  if (TEMPERATURE_RANK[incoming.temperature] > TEMPERATURE_RANK[existing.temperature]) {
+    patch.temperature = incoming.temperature;
+    changes.push(`temperature ${existing.temperature} → ${incoming.temperature}`);
+  }
+
+  const newTags = incoming.tags.filter(
+    (t) => !existing.tags.some((e) => e.toLowerCase() === t.toLowerCase()),
+  );
+  if (newTags.length) {
+    patch.tags = [...existing.tags, ...newTags];
+    changes.push(`${newTags.length} tag${newTags.length > 1 ? "s" : ""}`);
+  }
+
+  if (incoming.requirement && incoming.requirement !== existing.requirement) {
+    patch.requirement = existing.requirement
+      ? `${existing.requirement}\n${incoming.requirement}`
+      : incoming.requirement;
+    changes.push("requirement");
+  }
+
+  // The enquiry that came first is the one that dates the lead.
+  if (incoming.createdAt < existing.createdAt) {
+    patch.createdAt = incoming.createdAt;
+    changes.push("earlier enquiry date");
+  }
+
+  // A second touch from a different channel is worth knowing about even when
+  // no field changed, so it always counts as a change.
+  const sourceIsNew = incoming.source !== existing.source;
+  if (sourceIsNew) changes.push(`also via ${humanSource(incoming.source)}`);
+
+  const nameDiffers = incoming.name.trim() && incoming.name.trim() !== existing.name.trim();
+  const note =
+    `Repeat enquiry via ${humanSource(incoming.source)} from ${fileLabel}, row ${rowNumber}` +
+    (matchedOn === "email" ? ` (matched on email ${existing.email ?? incoming.email ?? ""})` : "") +
+    "." +
+    (nameDiffers ? ` Named "${incoming.name.trim()}" in that file.` : "") +
+    (changes.length ? ` Combined: ${changes.join(", ")}.` : " Nothing new to combine.");
+
+  return {
+    rowNumber,
+    leadId: existing.id,
+    existingName: existing.name,
+    incomingName: incoming.name,
+    phone: existing.phone,
+    matchedOn,
+    changes,
+    patch,
+    note,
+  };
+}
+
+/** Fold a further duplicate row into a plan that already exists for that lead. */
+function extendPlan(
+  plan: MergePlan,
+  existing: Lead,
+  incoming: Omit<Lead, "id">,
+  fileLabel: string,
+  rowNumber: number,
+): void {
+  const next = mergeLead({ ...existing, ...plan.patch } as Lead, incoming, fileLabel, rowNumber);
+  Object.assign(plan.patch, next.patch);
+  for (const c of next.changes) if (!plan.changes.includes(c)) plan.changes.push(c);
+  plan.note += ` Also row ${rowNumber}.`;
+}
+
+function humanSource(s: LeadSource): string {
+  return s.replace(/_/g, " ").toLowerCase();
 }
 
 export async function previewImport(
   csvText: string,
   mappingOverride?: Record<number, ImportField | "">,
-  skipDuplicates = true,
+  strategy: DuplicateStrategy = "merge",
+  fileLabel = "an upload",
 ): Promise<ImportPreview> {
   const { headers, rows } = parseCsv(csvText, detectDelimiter(csvText));
 
@@ -336,6 +560,8 @@ export async function previewImport(
       valid: 0,
       duplicatesInFile: 0,
       duplicatesInDb: 0,
+      merges: [],
+      channel: detectChannel(headers),
       errors: [
         {
           row: 1,
@@ -345,11 +571,12 @@ export async function previewImport(
     };
   }
 
-  const { prepared, errors, duplicatesInFile, duplicatesInDb } = await prepare(
+  const { prepared, merges, errors, duplicatesInFile, duplicatesInDb } = await prepare(
     headers,
     rows,
     mapping,
-    skipDuplicates,
+    strategy,
+    fileLabel,
   );
 
   return {
@@ -360,8 +587,21 @@ export async function previewImport(
     valid: prepared.length,
     duplicatesInFile,
     duplicatesInDb,
+    merges,
+    channel: detectChannel(headers),
     errors,
   };
+}
+
+/** Name the channel when the header row carries its fingerprint. */
+export function detectChannel(headers: string[]): string | undefined {
+  const set = new Set(headers.map((h) => norm(h)));
+  for (const preset of CHANNEL_PRESETS) {
+    if (!preset.signature.length) continue;
+    const hits = preset.signature.filter((sig: string) => set.has(norm(sig))).length;
+    if (hits >= 2) return preset.label;
+  }
+  return undefined;
 }
 
 /**
@@ -371,7 +611,8 @@ export async function previewImport(
 export async function commitImport(
   csvText: string,
   mapping: Record<number, ImportField | "">,
-  skipDuplicates = true,
+  strategy: DuplicateStrategy = "merge",
+  fileLabel = "an upload",
 ): Promise<ImportResult> {
   const { headers, rows } = parseCsv(csvText, detectDelimiter(csvText));
 
@@ -386,7 +627,7 @@ export async function commitImport(
     throw new Error(`Map a column to ${missing.map((f) => FIELD_LABELS[f]).join(" and ")} first.`);
   }
 
-  const { prepared, errors } = await prepare(headers, rows, mapping, skipDuplicates);
+  const { prepared, merges, errors } = await prepare(headers, rows, mapping, strategy, fileLabel);
 
   // One batched write for the whole file, then one batched assignment pass —
   // autoAssignMany loads the rule set and workload snapshot once instead of
@@ -407,7 +648,42 @@ export async function commitImport(
     await db.leads.update(leadId, { ownerId });
   }
 
-  return { created: saved.length, skipped: rows.length - saved.length, errors };
+  // Apply the merges the preview promised, each with a note on the lead's
+  // timeline so a repeat enquiry is visible to whoever calls them next.
+  let merged = 0;
+  for (const plan of merges) {
+    try {
+      const before = await db.leads.find(plan.leadId);
+      if (!before) continue;
+      const next = { ...before, ...plan.patch };
+      await db.leads.update(plan.leadId, {
+        ...plan.patch,
+        score: scoreImported(next),
+        updatedAt: new Date().toISOString(),
+      });
+      await db.activities.create({
+        type: "NOTE",
+        leadId: plan.leadId,
+        subject: `Repeat enquiry combined from ${fileLabel}`,
+        body: plan.note,
+        completed: true,
+        createdAt: new Date().toISOString(),
+      });
+      merged++;
+    } catch (e) {
+      errors.push({
+        row: plan.rowNumber,
+        message: `Could not combine with ${plan.existingName}: ${e instanceof Error ? e.message : "unknown error"}`,
+      });
+    }
+  }
+
+  return {
+    created: saved.length,
+    merged,
+    skipped: Math.max(0, rows.length - saved.length - merged),
+    errors,
+  };
 }
 
 /**
