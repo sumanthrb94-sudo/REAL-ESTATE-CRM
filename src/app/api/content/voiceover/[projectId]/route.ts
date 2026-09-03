@@ -9,7 +9,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { can } from "@/server/auth/rbac";
 import { getSessionUser } from "@/server/auth/session";
 import { buildCreativeBrief } from "@/server/content/brief";
-import { isVoiceoverEnabled, narrationText, reelNarration, synthesizeNarration, voiceConfig } from "@/server/content/voiceover";
+import { directNarration, isVoiceoverEnabled, narrationText, reelNarration, synthesizeNarration, voiceConfig } from "@/server/content/voiceover";
 import { writeNarration } from "@/server/ai/copy";
 
 export const runtime = "nodejs";
@@ -33,7 +33,9 @@ export async function GET(
   // or if it invents a figure, the deterministic script is used.
   const useAi = request.nextUrl.searchParams.get("ai") === "1";
   const narration = useAi ? await writeNarration(brief) : { cues: reelNarration(brief), source: "template" as const };
-  const cues = narration.cues;
+  // Direction is applied at the last moment, so the stored script stays plain
+  // and only the model that understands tags ever sees them.
+  const cues = directNarration(narration.cues, voiceConfig().modelId);
   const text = narrationText(cues);
   const format = request.nextUrl.searchParams.get("format") ?? "script";
   const slug = brief.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase();

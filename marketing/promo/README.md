@@ -15,8 +15,20 @@ pipeline after a UI change produces a fresh cut.
    from github.com/thewh1teagle/kokoro-onnx releases, then
    `python3 vo/voice.py <model dir> am_michael` → `vo/*.wav` + `vo/timings.json`.
    Copy the wavs to `assets/vo/` and `timings.json` beside `build.mjs`.
-   Voices worth trying: `am_michael` (deep US), `bm_george` (British), `am_adam`.
-   With an ElevenLabs key, `npx hyperframes tts` gives the same files from a premium voice.
+   Voices worth trying: `hm_psi` and `hm_omega` (Indian male), `hf_alpha` and
+   `hf_beta` (Indian female), `am_michael` (deep US), `bm_george` (British).
+   The `h*` voices are Hindi-trained and read English with an Indian accent,
+   which is what the current default uses.
+
+   **ElevenLabs instead:** `ELEVENLABS_API_KEY=… ELEVENLABS_VOICE_ID=… node vo/elevenlabs.mjs`
+   writes the same wavs and `timings.json`, so `build.mjs` cannot tell the
+   difference and scene timing follows the new read automatically. It defaults
+   to `eleven_v3`, which reads per-scene direction tags (`[warmly]`,
+   `[excited]`) rather than speaking them.
+
+   To use a Voice Library voice such as Bunty, add it to your workspace in the
+   ElevenLabs web app first — the library is not reachable from the API — then
+   copy its id from Voices into `ELEVENLABS_VOICE_ID`.
 3. **Sound design**: `sh make-sfx.sh` (twelve FFmpeg-synthesised effects) and
    `sh make-bed.sh <total seconds>` after the first build prints the total.
 4. **Build + render**: `node build.mjs && npm run check && npm run render`.

@@ -7,7 +7,7 @@ import { slideElement, SLIDES, SLIDE_COUNT } from "@/server/content/carousel";
 import { formatMoney, MARKETS, resolveMarket, spokenMoney } from "@/server/content/market";
 import { IMAGE_PRESETS } from "@/server/content/presets";
 import { buildReelComposition, reelCompositionId, reelProjectFiles, REEL_DURATION_S } from "@/server/content/reel";
-import { narrationText, reelNarration, synthesizeNarration, voiceConfig } from "@/server/content/voiceover";
+import { directNarration, isV3, narrationText, reelNarration, stripAudioTags, synthesizeNarration, voiceConfig } from "@/server/content/voiceover";
 import type { Project, Unit } from "@/types/domain";
 
 const project: Project = {
@@ -245,6 +245,60 @@ describe("narration", () => {
     expect(result.audio.byteLength).toBe(3);
     expect(calls[0]?.url).toContain("/text-to-speech/voice_1");
     expect((calls[0]?.init.headers as Record<string, string>)["xi-api-key"]).toBe("secret");
-    expect(JSON.parse(calls[0]?.init.body as string).model_id).toBe("eleven_multilingual_v2");
+    expect(JSON.parse(calls[0]?.init.body as string).model_id).toBe("eleven_v3");
+  });
+});
+
+describe("ElevenLabs v3", () => {
+  it("defaults to the expressive model", () => {
+    expect(voiceConfig({ VOICE_DRIVER: "elevenlabs", ELEVENLABS_API_KEY: "k" }).modelId).toBe("eleven_v3");
+    expect(isV3("eleven_v3")).toBe(true);
+    expect(isV3("eleven_v3_conversational")).toBe(true);
+    expect(isV3("eleven_multilingual_v2")).toBe(false);
+  });
+
+  it("directs each scene with an audio tag on v3", () => {
+    const brief = deriveBrief(project, units, MARKETS.IN);
+    const directed = directNarration(reelNarration(brief), "eleven_v3");
+    expect(directed[0]?.text.startsWith("[warmly]")).toBe(true);
+    expect(directed[3]?.text.startsWith("[excited]")).toBe(true);
+    // Timing is untouched: direction changes delivery, not the schedule.
+    expect(directed.map((c) => c.start)).toEqual(reelNarration(brief).map((c) => c.start));
+  });
+
+  it("strips tags for a model that would read them aloud", () => {
+    const brief = deriveBrief(project, units, MARKETS.IN);
+    const tagged = directNarration(reelNarration(brief), "eleven_v3");
+    const plain = directNarration(tagged, "eleven_multilingual_v2");
+    expect(plain.some((c) => /\[/.test(c.text))).toBe(false);
+    expect(stripAudioTags("[whispers] Book a [laughs] visit")).toBe("Book a visit");
+  });
+
+  it("sends v3 only the stability values it accepts", async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const fetchImpl = (async (url: string, init: RequestInit) => {
+      calls.push({ url, init });
+      return new Response(new Uint8Array([1]), { status: 200 });
+    }) as unknown as typeof fetch;
+    const env = { VOICE_DRIVER: "elevenlabs", ELEVENLABS_API_KEY: "k", ELEVENLABS_VOICE_ID: "v" };
+
+    await synthesizeNarration("hi", { fetchImpl, env });
+    const v3 = JSON.parse(calls[0]!.init.body as string);
+    expect(v3.model_id).toBe("eleven_v3");
+    // v3 rejects anything but 0, 0.5 or 1, and has no style parameter.
+    expect([0, 0.5, 1]).toContain(v3.voice_settings.stability);
+    expect(v3.voice_settings.style).toBeUndefined();
+
+    await synthesizeNarration("hi", { fetchImpl, env: { ...env, ELEVENLABS_MODEL_ID: "eleven_multilingual_v2" } });
+    expect(JSON.parse(calls[1]!.init.body as string).voice_settings.style).toBe(0.2);
+  });
+
+  it("refuses a script longer than the model accepts", async () => {
+    await expect(
+      synthesizeNarration("x".repeat(5_001), {
+        env: { VOICE_DRIVER: "elevenlabs", ELEVENLABS_API_KEY: "k" },
+        fetchImpl: (async () => new Response(new Uint8Array([1]))) as unknown as typeof fetch,
+      }),
+    ).rejects.toThrow(/5000 characters; eleven_v3 accepts 5000|accepts 5,?000/);
   });
 });

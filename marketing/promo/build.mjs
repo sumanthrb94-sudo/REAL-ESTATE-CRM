@@ -8,6 +8,22 @@
 import fs from "node:fs";
 
 const W = 1080, H = 1920;
+
+// ── Meta safe zones ─────────────────────────────────────────────────────────
+//
+// A Reel is not shown full-bleed: Instagram paints its own chrome over the
+// frame. The header sits across the top, and the caption, handle, audio strip
+// and Send row occupy a deep band along the bottom, with the like/comment/share
+// rail down the right. Anything you place there is simply not read.
+//
+// Meta's own creative guidance for Reels asks for 254px clear at the top and
+// 388px at the bottom on a 1080×1920 frame; these are rounded outward to leave
+// a margin, because the chrome grows when a caption wraps to a second line.
+// Set SAFE_ZONES=1 when building to draw the boundaries over the render and
+// check by eye rather than by arithmetic.
+const SAFE = { top: 260, bottom: 430, side: 60, rail: 200 };
+const SAFE_BOTTOM_Y = H - SAFE.bottom; // 1490 — nothing readable below this
+const SHOW_SAFE = process.env.SAFE_ZONES === "1";
 const timings = JSON.parse(fs.readFileSync(new URL("./timings.json", import.meta.url), "utf8"));
 const cues = timings.cues;
 
@@ -75,7 +91,7 @@ const audios = [
   audio("sfx-sting-cta", "assets/sfx/sting.wav", cta.start + 1.3, 1.0, L.sting, 0.8),
 ].join("\n      ");
 
-const caption = (s) => `<div class="caption" id="cap-${s.id}">${esc(s.text)}</div>`;
+const caption = (s) => `<div class="caption" id="cap-${s.id}"><span>${esc(s.text)}</span></div>`;
 
 const html = `<!doctype html>
 <html lang="en">
@@ -98,15 +114,26 @@ const html = `<!doctype html>
       background: radial-gradient(circle, rgba(47,99,255,0.42) 0%, rgba(47,99,255,0) 60%); }
     .clip { position: absolute; inset: 0; width: 100%; height: 100%; }
     .inner { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .brand { position: absolute; top: 120px; left: 84px; display: flex; align-items: center; gap: 18px; font-size: 40px; font-weight: 700; }
+    .brand { position: absolute; top: ${SAFE.top}px; left: ${SAFE.side + 24}px; display: flex; align-items: center; gap: 18px; font-size: 40px; font-weight: 700; }
     .brand .mark { display: block; width: 56px; height: 56px; border-radius: 14px; background: ${C.blue}; }
     .brand .mark::after { content: ""; position: absolute; width: 24px; height: 30px; margin: 13px 16px; border: 4px solid #fff; border-radius: 4px; }
-    .caption { position: absolute; left: 84px; right: 84px; top: 1490px; font-size: 46px; font-weight: 600; line-height: 1.25; color: ${C.ink};
-      text-shadow: 0 2px 18px rgba(0,0,0,0.6); opacity: 0; }
+    /* Anchored to the bottom of the safe area and growing upward, so a
+       two-line caption stays readable instead of sliding under the chrome. */
+    .caption { position: absolute; left: ${SAFE.side + 24}px; right: ${SAFE.side + 24}px;
+      bottom: ${SAFE.bottom + 40}px; font-size: 46px; font-weight: 600; line-height: 1.25; color: ${C.ink};
+      opacity: 0; }
+    /* A backing plate, not a text-shadow: these captions pass over a white
+       laptop screen mid-video, where white-on-white measured 1.5:1. The plate
+       holds contrast over any scene, and is what a Reel caption looks like
+       anyway. */
+    .caption span { display: inline; box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
+      background: rgba(6,10,20,0.82); padding: 10px 18px; border-radius: 10px;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.45); }
     .caption b { color: ${C.blueSoft}; font-weight: 600; }
 
     /* hook */
-    .kinetic { position: absolute; left: 84px; right: 84px; top: 560px; display: flex; flex-direction: column; gap: 22px; }
+    .kinetic { position: absolute; left: ${SAFE.side + 24}px; right: ${SAFE.side + 24}px; top: 560px; display: flex; flex-direction: column; gap: 22px; }
     .kinetic .line { display: block; font-size: 112px; font-weight: 700; line-height: 1.0; letter-spacing: -2px; }
     .kinetic .line.dim { color: ${C.muted}; }
     .kinetic .q { display: block; margin-top: 44px; font-size: 64px; font-weight: 600; color: ${C.blueSoft}; }
@@ -145,7 +172,7 @@ const html = `<!doctype html>
     #card-inv { top: 0; } #card-book { top: 200px; } #card-rep { top: 400px; }
 
     /* cta */
-    .end { position: absolute; left: 84px; right: 84px; top: 560px; display: flex; flex-direction: column; align-items: flex-start; }
+    .end { position: absolute; left: ${SAFE.side + 24}px; right: ${SAFE.side + 24}px; top: 560px; display: flex; flex-direction: column; align-items: flex-start; }
     .end .wordmark { display: flex; align-items: center; gap: 26px; font-size: 104px; font-weight: 700; letter-spacing: -2px; }
     .end .wordmark .mark { display: block; width: 110px; height: 110px; border-radius: 28px; background: ${C.blue}; position: relative; }
     .end .wordmark .mark::after { content: ""; position: absolute; width: 46px; height: 58px; left: 32px; top: 26px; border: 7px solid #fff; border-radius: 8px; }
@@ -153,6 +180,12 @@ const html = `<!doctype html>
     .end .for { display: block; margin-top: 90px; font-size: 34px; letter-spacing: 5px; text-transform: uppercase; color: ${C.blueSoft}; font-weight: 600; }
     .end .btn { display: inline-block; margin-top: 26px; padding: 30px 52px; border-radius: 22px; background: ${C.blue}; color: #fff; font-size: 52px; font-weight: 700; }
     .end .note { display: block; margin-top: 24px; font-size: 32px; color: ${C.muted}; }
+    /* Build-time overlay: the boundaries Instagram's chrome will cover. */
+    .safe-guide { position: absolute; inset: 0; pointer-events: none; z-index: 999; }
+    .safe-guide i { position: absolute; left: 0; right: 0; background: rgba(239,68,68,0.28); }
+    .safe-guide i.top { top: 0; height: ${SAFE.top}px; }
+    .safe-guide i.bottom { bottom: 0; height: ${SAFE.bottom}px; }
+    .safe-guide b { position: absolute; top: 0; bottom: 0; right: 0; width: ${SAFE.rail}px; background: rgba(245,158,11,0.22); }
   </style>
 </head>
 <body>
@@ -160,6 +193,7 @@ const html = `<!doctype html>
     <div class="bg"></div>
     <div class="grid" id="grid"></div>
     <div class="glow" id="glow"></div>
+    ${SHOW_SAFE ? '<div class="safe-guide"><i class="top"></i><i class="bottom"></i><b></b></div>' : ""}
     <div class="brand" id="brand"><span class="mark"></span><span>EstateCRM</span></div>
 
     <!-- 1 · hook -->
@@ -316,3 +350,4 @@ const html = `<!doctype html>
 
 fs.writeFileSync(new URL("./index.html", import.meta.url), html);
 console.log(`index.html · ${TOTAL}s · scenes:`, scenes.map((s) => `${s.id}@${f2(s.start)}`).join(" "));
+console.log(`safe area: y ${SAFE.top}–${SAFE_BOTTOM_Y} of ${H}${SHOW_SAFE ? " · guides ON" : ""}`);
