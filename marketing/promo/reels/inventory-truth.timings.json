@@ -1,0 +1,47 @@
+{
+ "voice": "am_michael",
+ "cues": [
+  {
+   "id": "hook",
+   "text": "So which price is the real one?",
+   "file": "hook.wav",
+   "duration": 2.03
+  },
+  {
+   "id": "one-grid",
+   "text": "Every tower, floor and unit sits in one grid, each with its own price.",
+   "file": "one-grid.wav",
+   "duration": 4.806
+  },
+  {
+   "id": "locked",
+   "text": "Book a unit and it locks, so a second agent cannot sell it.",
+   "file": "locked.wav",
+   "duration": 3.886
+  },
+  {
+   "id": "ladder",
+   "text": "Each booking runs from Token to Agreement to Registered, with milestones attached.",
+   "file": "ladder.wav",
+   "duration": 5.397
+  },
+  {
+   "id": "same-count",
+   "text": "The dashboard counts the same units, so nobody retypes a number.",
+   "file": "same-count.wav",
+   "duration": 4.306
+  },
+  {
+   "id": "project-truth",
+   "text": "Reports show units left and booking value for every project you sell.",
+   "file": "project-truth.wav",
+   "duration": 4.462
+  },
+  {
+   "id": "cta",
+   "text": "One inventory. One price. Live. Book a live demo.",
+   "file": "cta.wav",
+   "duration": 3.927
+  }
+ ]
+}

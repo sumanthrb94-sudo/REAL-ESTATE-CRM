@@ -1,0 +1,47 @@
+{
+ "voice": "am_michael",
+ "cues": [
+  {
+   "id": "hook",
+   "text": "Which source paid for itself?",
+   "file": "hook.wav",
+   "duration": 1.586
+  },
+  {
+   "id": "source-on-every-lead",
+   "text": "Every lead carries its source, from Instagram to the big property portals.",
+   "file": "source-on-every-lead.wav",
+   "duration": 4.919
+  },
+  {
+   "id": "source-table",
+   "text": "Reports ranks each source by leads, by conversion, and by booking value.",
+   "file": "source-table.wav",
+   "duration": 4.868
+  },
+  {
+   "id": "money-traced-back",
+   "text": "Every booking links to its lead, so 7.23 crore splits by source.",
+   "file": "money-traced-back.wav",
+   "duration": 5.142
+  },
+  {
+   "id": "who-closed-it",
+   "text": "The leaderboard names the agent behind each booking, and the value closed.",
+   "file": "who-closed-it.wav",
+   "duration": 4.678
+  },
+  {
+   "id": "trend-in-hand",
+   "text": "Six months of leads and bookings sit on your phone, side by side.",
+   "file": "trend-in-hand.wav",
+   "duration": 4.095
+  },
+  {
+   "id": "cta",
+   "text": "See which source books the units. Open the source report.",
+   "file": "cta.wav",
+   "duration": 3.488
+  }
+ ]
+}

@@ -1,0 +1,82 @@
+{
+ "id": "source-roi",
+ "angle": "The other reels sell speed and follow-up; this one follows the money backwards, from a signed booking to the source, agent and project that produced it.",
+ "palette": "teal",
+ "hook": {
+  "lines": [
+   "Nine lakh on ads.",
+   "Zero idea what worked.",
+   "That ends today."
+  ],
+  "strikeLine": 1,
+  "question": "Which source paid for itself?"
+ },
+ "scenes": [
+  {
+   "id": "source-on-every-lead",
+   "shot": "dashboard",
+   "vo": "Every lead carries its source, from Instagram to the big property portals.",
+   "focus": "the Lead Sources bar chart",
+   "chip": {
+    "title": "Source on every lead",
+    "sub": "Eleven named sources, set at import"
+   },
+   "sfx": "pop",
+   "hotspot": "Lead Sources"
+  },
+  {
+   "id": "source-table",
+   "shot": "reports",
+   "vo": "Reports ranks each source by leads, by conversion, and by booking value.",
+   "focus": "the Source Performance table",
+   "chip": {
+    "title": "Source performance",
+    "sub": "Leads, conversion, value per channel"
+   },
+   "sfx": "swell",
+   "hotspot": "Conversion"
+  },
+  {
+   "id": "money-traced-back",
+   "shot": "bookings",
+   "vo": "Every booking links to its lead, so 7.23 crore splits by source.",
+   "focus": "the booking value column",
+   "chip": {
+    "title": "Money traced back",
+    "sub": "Booking value by source and project"
+   },
+   "sfx": "tick",
+   "hotspot": "Booking Value"
+  },
+  {
+   "id": "who-closed-it",
+   "shot": "dashboard",
+   "vo": "The leaderboard names the agent behind each booking, and the value closed.",
+   "focus": "the Agent Leaderboard table",
+   "chip": {
+    "title": "Agent leaderboard",
+    "sub": "Leads, visits, booked, conversion"
+   },
+   "sfx": "chime",
+   "hotspot": "Top Performers"
+  },
+  {
+   "id": "trend-in-hand",
+   "shot": "m-dashboard",
+   "vo": "Six months of leads and bookings sit on your phone, side by side.",
+   "focus": "the leads versus bookings trend chart",
+   "chip": {
+    "title": "Trend on your phone",
+    "sub": "Last six months, leads and bookings"
+   },
+   "sfx": "whoosh",
+   "hotspot": "Leads vs Bookings — last 6 months"
+  }
+ ],
+ "cta": {
+  "tag": "See which source books the units.",
+  "eyebrow": "STOP SPENDING BLIND",
+  "button": "Open the source report",
+  "note": "Source, agent and project, in one report."
+ }
+}

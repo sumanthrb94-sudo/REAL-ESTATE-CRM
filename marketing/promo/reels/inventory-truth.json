@@ -1,0 +1,82 @@
+{
+ "id": "inventory-truth",
+ "angle": "The only reel about the stock itself: one live grid of towers, floors and units, where booking a flat locks it and the price is read off the unit instead of a forwarded list.",
+ "palette": "ember",
+ "hook": {
+  "lines": [
+   "Excel sheet.",
+   "WhatsApp forward.",
+   "One live grid."
+  ],
+  "strikeLine": 1,
+  "question": "So which price is the real one?"
+ },
+ "scenes": [
+  {
+   "id": "one-grid",
+   "shot": "inventory",
+   "vo": "Every tower, floor and unit sits in one grid, each with its own price.",
+   "focus": "the Available Units stat card",
+   "chip": {
+    "title": "Every unit, one grid",
+    "sub": "Towers, floors, units and prices"
+   },
+   "sfx": "whoosh",
+   "hotspot": "Available units"
+  },
+  {
+   "id": "locked",
+   "shot": "bookings",
+   "vo": "Book a unit and it locks, so a second agent cannot sell it.",
+   "focus": "the New Booking button",
+   "chip": {
+    "title": "Sold once, only once",
+    "sub": "Booked units drop out of the form"
+   },
+   "sfx": "click",
+   "hotspot": "Status"
+  },
+  {
+   "id": "ladder",
+   "shot": "bookings",
+   "vo": "Each booking runs from Token to Agreement to Registered, with milestones attached.",
+   "focus": "the booking status column",
+   "chip": {
+    "title": "Token to Registered",
+    "sub": "Milestones set at booking time"
+   },
+   "sfx": "tick",
+   "hotspot": "Registered"
+  },
+  {
+   "id": "same-count",
+   "shot": "dashboard",
+   "vo": "The dashboard counts the same units, so nobody retypes a number.",
+   "focus": "the Available Units tile",
+   "chip": {
+    "title": "Same count everywhere",
+    "sub": "Dashboard reads the live inventory"
+   },
+   "sfx": "chime",
+   "hotspot": "Available Units"
+  },
+  {
+   "id": "project-truth",
+   "shot": "reports",
+   "vo": "Reports show units left and booking value for every project you sell.",
+   "focus": "the Units Left column in the Projects table",
+   "chip": {
+    "title": "Per project truth",
+    "sub": "Units left beside booking value"
+   },
+   "sfx": "swell",
+   "hotspot": "Booking Value"
+  }
+ ],
+ "cta": {
+  "tag": "One inventory. One price. Live.",
+  "eyebrow": "STOP FORWARDING PRICE LISTS",
+  "button": "Book a live demo",
+  "note": "EstateCRM. Built for Indian real estate."
+ }
+}

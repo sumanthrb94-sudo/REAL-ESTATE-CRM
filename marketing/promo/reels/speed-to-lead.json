@@ -1,0 +1,82 @@
+{
+ "id": "speed-to-lead",
+ "angle": "The villain is the dead hour: a midnight enquiry gets a named owner before anyone wakes up, instead of waiting in a group chat until morning.",
+ "palette": "cobalt",
+ "hook": {
+  "lines": [
+   "A lead at 11:48 PM.",
+   "Waits until morning.",
+   "Owned in seconds."
+  ],
+  "strikeLine": 1,
+  "question": "Who owns that lead tonight?"
+ },
+ "scenes": [
+  {
+   "id": "dead-hour",
+   "shot": "leads",
+   "vo": "A new Instagram enquiry lands just before midnight, long after the office closed.",
+   "focus": "the newest lead row at the top of the lead table",
+   "chip": {
+    "title": "11:48 PM enquiry",
+    "sub": "Instagram, one of eleven lead sources"
+   },
+   "sfx": "thud",
+   "hotspot": "Unassigned"
+  },
+  {
+   "id": "rule-fires",
+   "shot": "distribution",
+   "vo": "A distribution rule matches it and hands the lead to a named agent.",
+   "focus": "the Owner field in the lead detail header",
+   "chip": {
+    "title": "Round robin, by source",
+    "sub": "Rules run the moment a lead is created"
+   },
+   "sfx": "pop",
+   "hotspot": "Round Robin"
+  },
+  {
+   "id": "hers-not-the-group",
+   "shot": "m-leads",
+   "vo": "The lead shows up in her own list, not in a group chat.",
+   "focus": "the top card in the mobile lead list",
+   "chip": {
+    "title": "Hers, not the group's",
+    "sub": "Agents see only the leads they own"
+   },
+   "sfx": "whoosh",
+   "hotspot": "Hot Leads"
+  },
+  {
+   "id": "first-call",
+   "shot": "m-my-day",
+   "vo": "By morning her day already starts with the call that waited longest.",
+   "focus": "the Call these first list",
+   "chip": {
+    "title": "Call these first",
+    "sub": "Nine AM sweep places anything ownerless"
+   },
+   "sfx": "tick",
+   "hotspot": "Call these first"
+  },
+  {
+   "id": "nothing-lost",
+   "shot": "pipeline",
+   "vo": "No lead is lost to the night, and the pipeline shows 7.23 crore.",
+   "focus": "the Pipeline Value KPI card",
+   "chip": {
+    "title": "7.23 crore in play",
+    "sub": "Nothing waiting on someone to wake up"
+   },
+   "sfx": "swell",
+   "hotspot": "Open Value"
+  }
+ ],
+ "cta": {
+  "tag": "Speed to lead, every hour.",
+  "eyebrow": "NO LEAD SLEEPS TILL MORNING",
+  "button": "See EstateCRM",
+  "note": "Rules, sweeps and owners in one place."
+ }
+}

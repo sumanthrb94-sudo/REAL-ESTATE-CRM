@@ -57,6 +57,62 @@ what the app will cover.
 keeps it out of the repo so a clone does not carry ~50 MB of screenshots, speech
 and sound effects.
 
+## The campaign reels
+
+`build.mjs` is the flagship ad, composed scene by scene. `reel.mjs` is the
+engine behind the campaign around it: a reel is a JSON spec in `reels/` — a
+hook, five scenes, a call to action — and everything else is derived from it.
+
+```bash
+python3 vo/narrate.py <kokoro model dir> am_michael   # narrate every spec
+REEL=speed-to-lead node reel.mjs                      # → index.html
+sh make-beds.sh speed-to-lead 146.83 <seconds>        # bed in that reel's key
+npm run check && npm run render
+```
+
+| Reel | Angle | Palette |
+| --- | --- | --- |
+| `speed-to-lead` | A midnight enquiry has a named owner before anyone wakes up | cobalt |
+| `source-roi` | Follow the money backwards, from a booking to the source that made it | teal |
+| `morning-agenda` | The first sixty seconds of the day, already laid out | violet |
+| `inventory-truth` | One live grid, so nobody sells the same flat twice | ember |
+| `one-door-import` | Every list you already own, in through one screen | ink |
+
+Scene length follows the narration, so editing a `vo` line re-times the cut. The
+palette changes only the accent and the ground — the type, spacing and device
+treatment are fixed, so five reels read as a family rather than five files.
+
+### Where the highlight goes
+
+The flagship placed its highlight ring by hand: `left: 63.5%`. That put the ring
+76px to the right of the tile it meant to circle and 60px into the tile beside
+it, covering the number it was drawing attention to. Percentages cannot be
+reviewed, only re-eyeballed, and every new scene re-rolls the same dice.
+
+So the app is asked instead. `hotspots.mjs` walks each screen's rendered DOM,
+labels every card- and row-shaped element with its own visible text, and writes
+the box as a fraction of the viewport into `hotspots.json`:
+
+```bash
+S=<dir with admin-session.json> EXE=/path/to/chromium node hotspots.mjs
+```
+
+A scene then names the element (`"hotspot": "Pipeline Value"`) and the build
+resolves it, insets the ring inside that element's own box, and checks it
+against every other measured element on the screen. If the ring would cover more
+than 15% of a neighbour, **the build fails** rather than rendering it — a few per
+cent is the glow feathering onto a sibling inside the same card, a sixth of an
+element is covering it up. The same pass places the callout chip: it takes the
+low position by default and moves above the device when the highlight is down in
+that half, so it can land on neither the ring nor the subtitles.
+
+Data rows are refused as highlight targets. A ring pinned to a name in the lead
+table is correct for exactly as long as nobody adds a lead.
+
+`shoot-import.mjs` and `shoot-extra.mjs` capture the screens the flagship never
+needed — the import mapping and preview, My Day, and Lead Distribution — because
+narrating a screen while showing a different one is worse than having no shot.
+
 ## Carousel
 
 `EXE=/path/to/chromium node carousel.mjs` renders five 1080×1350 slides from the same

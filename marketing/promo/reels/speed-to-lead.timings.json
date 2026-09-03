@@ -1,0 +1,47 @@
+{
+ "voice": "am_michael",
+ "cues": [
+  {
+   "id": "hook",
+   "text": "Who owns that lead tonight?",
+   "file": "hook.wav",
+   "duration": 1.495
+  },
+  {
+   "id": "dead-hour",
+   "text": "A new Instagram enquiry lands just before midnight, long after the office closed.",
+   "file": "dead-hour.wav",
+   "duration": 5.668
+  },
+  {
+   "id": "rule-fires",
+   "text": "A distribution rule matches it and hands the lead to a named agent.",
+   "file": "rule-fires.wav",
+   "duration": 4.387
+  },
+  {
+   "id": "hers-not-the-group",
+   "text": "The lead shows up in her own list, not in a group chat.",
+   "file": "hers-not-the-group.wav",
+   "duration": 3.361
+  },
+  {
+   "id": "first-call",
+   "text": "By morning her day already starts with the call that waited longest.",
+   "file": "first-call.wav",
+   "duration": 4.045
+  },
+  {
+   "id": "nothing-lost",
+   "text": "No lead is lost to the night, and the pipeline shows 7.23 crore.",
+   "file": "nothing-lost.wav",
+   "duration": 4.994
+  },
+  {
+   "id": "cta",
+   "text": "Speed to lead, every hour. See EstateCRM.",
+   "file": "cta.wav",
+   "duration": 3.452
+  }
+ ]
+}

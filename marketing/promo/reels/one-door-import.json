@@ -1,0 +1,82 @@
+{
+ "id": "one-door-import",
+ "angle": "Instead of touring the product, this reel follows one job end to end: four different channel exports going in through a single import screen, with duplicates shown and combined instead of silently dropped.",
+ "palette": "ink",
+ "hook": {
+  "lines": [
+   "Six tabs of leads.",
+   "Three of them lie.",
+   "One import screen."
+  ],
+  "strikeLine": 1,
+  "question": "Which list is the real one?"
+ },
+ "scenes": [
+  {
+   "id": "one-door",
+   "shot": "import",
+   "vo": "Every list you already own comes in through the same import screen.",
+   "focus": "the Import button above the leads table",
+   "chip": {
+    "title": "One door in",
+    "sub": "Meta, WhatsApp, website, portals"
+   },
+   "sfx": "whoosh",
+   "hotspot": "Import leads"
+  },
+  {
+   "id": "columns",
+   "shot": "import-mapping",
+   "vo": "Excel, CSV or TSV uploads, and the columns are detected by header.",
+   "focus": "the auto-filled column mapping",
+   "chip": {
+    "title": "Columns auto-detected",
+    "sub": "Up to 5,000 rows and five megabytes"
+   },
+   "sfx": "click",
+   "hotspot": "Check the column mapping"
+  },
+  {
+   "id": "preview",
+   "shot": "import-preview",
+   "vo": "Nothing is written until you confirm the preview, and duplicates are listed.",
+   "focus": "the duplicate rows in the preview",
+   "chip": {
+    "title": "Preview before write",
+    "sub": "Matched on phone, or on email"
+   },
+   "sfx": "tick",
+   "hotspot": "What will happen"
+  },
+  {
+   "id": "combined",
+   "shot": "import-preview",
+   "vo": "A repeat buyer is combined, so the owner, stage and history survive.",
+   "focus": "the timeline note naming the file and the row",
+   "chip": {
+    "title": "Combined, not dropped",
+    "sub": "Tags union, budget widens, notes append"
+   },
+   "sfx": "chime",
+   "hotspot": "Will combine"
+  },
+  {
+   "id": "assigned",
+   "shot": "m-leads",
+   "vo": "The new leads then reach your agents by your own distribution rules.",
+   "focus": "the owner name on each new lead",
+   "chip": {
+    "title": "Straight to an agent",
+    "sub": "Round robin, load balanced, or by source"
+   },
+   "sfx": "pop",
+   "hotspot": "Unassigned"
+  }
+ ],
+ "cta": {
+  "tag": "One import screen for every list",
+  "eyebrow": "EVERY LIST, ONE DOOR",
+  "button": "Book a demo",
+  "note": "CSV, TSV and Excel. Duplicates combined."
+ }
+}

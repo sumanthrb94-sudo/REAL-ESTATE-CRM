@@ -1,0 +1,47 @@
+{
+ "voice": "am_michael",
+ "cues": [
+  {
+   "id": "hook",
+   "text": "Which list is the real one?",
+   "file": "hook.wav",
+   "duration": 1.821
+  },
+  {
+   "id": "one-door",
+   "text": "Every list you already own comes in through the same import screen.",
+   "file": "one-door.wav",
+   "duration": 3.896
+  },
+  {
+   "id": "columns",
+   "text": "Excel, CSV or TSV uploads, and the columns are detected by header.",
+   "file": "columns.wav",
+   "duration": 5.535
+  },
+  {
+   "id": "preview",
+   "text": "Nothing is written until you confirm the preview, and duplicates are listed.",
+   "file": "preview.wav",
+   "duration": 4.606
+  },
+  {
+   "id": "combined",
+   "text": "A repeat buyer is combined, so the owner, stage and history survive.",
+   "file": "combined.wav",
+   "duration": 4.655
+  },
+  {
+   "id": "assigned",
+   "text": "The new leads then reach your agents by your own distribution rules.",
+   "file": "assigned.wav",
+   "duration": 4.551
+  },
+  {
+   "id": "cta",
+   "text": "One import screen for every list Book a demo.",
+   "file": "cta.wav",
+   "duration": 2.804
+  }
+ ]
+}

@@ -1,0 +1,82 @@
+{
+ "id": "morning-agenda",
+ "angle": "The other reels sell the whole CRM; this one sells only the first sixty seconds of the working day, where the morning scramble to hand out leads is replaced by an agenda each executive finds already waiting on their phone.",
+ "palette": "violet",
+ "hook": {
+  "lines": [
+   "Every morning.",
+   "The same scramble.",
+   "Not any more."
+  ],
+  "strikeLine": 1,
+  "question": "Who does your team call first?"
+ },
+ "scenes": [
+  {
+   "id": "no-hand-outs",
+   "shot": "distribution",
+   "vo": "No more dealing out leads by hand on WhatsApp every morning.",
+   "focus": "the owner column, where every lead already carries a name",
+   "chip": {
+    "title": "No morning hand-outs",
+    "sub": "Rules place leads as they arrive"
+   },
+   "sfx": "riser",
+   "hotspot": "Rules (highest priority wins)"
+  },
+  {
+   "id": "day-laid-out",
+   "shot": "m-my-day",
+   "vo": "Your executive signs in, and the day is already laid out.",
+   "focus": "the row of counts across the top of the screen",
+   "chip": {
+    "title": "My Day, on a phone",
+    "sub": "Laid out before they sit down"
+   },
+   "sfx": "chime",
+   "hotspot": "Good evening, Administrator"
+  },
+  {
+   "id": "call-first",
+   "shot": "my-day",
+   "vo": "Call these first. Never contacted, and longest wait sits on top.",
+   "focus": "the lead at the top of the list, waiting the longest",
+   "chip": {
+    "title": "Call these first",
+    "sub": "Never contacted, longest wait on top"
+   },
+   "sfx": "tick",
+   "hotspot": "Call these first"
+  },
+  {
+   "id": "visits-today",
+   "shot": "m-site-visits",
+   "vo": "Today's site visits show with times, plus any left open earlier.",
+   "focus": "the appointment times against today's visits",
+   "chip": {
+    "title": "Visits and follow-ups",
+    "sub": "Today's times, plus anything left open"
+   },
+   "sfx": "pop",
+   "hotspot": "Upcoming"
+  },
+  {
+   "id": "going-cold",
+   "shot": "pipeline",
+   "vo": "Leads going quiet get flagged, and each item clears itself when done.",
+   "focus": "the stalled deals sitting in the middle stages",
+   "chip": {
+    "title": "Going cold",
+    "sub": "Untouched for a week, flagged for you"
+   },
+   "sfx": "swell",
+   "hotspot": "Contacted"
+  }
+ ],
+ "cta": {
+  "tag": "The first sixty seconds, sorted",
+  "eyebrow": "ESTATECRM FOR INDIAN BUILDERS",
+  "button": "Book a demo",
+  "note": "Built for Indian real estate sales teams"
+ }
+}

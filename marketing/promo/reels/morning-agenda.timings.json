@@ -1,0 +1,47 @@
+{
+ "voice": "am_michael",
+ "cues": [
+  {
+   "id": "hook",
+   "text": "Who does your team call first?",
+   "file": "hook.wav",
+   "duration": 1.709
+  },
+  {
+   "id": "no-hand-outs",
+   "text": "No more dealing out leads by hand on WhatsApp every morning.",
+   "file": "no-hand-outs.wav",
+   "duration": 3.978
+  },
+  {
+   "id": "day-laid-out",
+   "text": "Your executive signs in, and the day is already laid out.",
+   "file": "day-laid-out.wav",
+   "duration": 3.613
+  },
+  {
+   "id": "call-first",
+   "text": "Call these first. Never contacted, and longest wait sits on top.",
+   "file": "call-first.wav",
+   "duration": 4.458
+  },
+  {
+   "id": "visits-today",
+   "text": "Today's site visits show with times, plus any left open earlier.",
+   "file": "visits-today.wav",
+   "duration": 4.206
+  },
+  {
+   "id": "going-cold",
+   "text": "Leads going quiet get flagged, and each item clears itself when done.",
+   "file": "going-cold.wav",
+   "duration": 4.554
+  },
+  {
+   "id": "cta",
+   "text": "The first sixty seconds, sorted Book a demo.",
+   "file": "cta.wav",
+   "duration": 2.936
+  }
+ ]
+}
