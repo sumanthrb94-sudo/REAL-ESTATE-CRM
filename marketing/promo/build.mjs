@@ -7,6 +7,51 @@
 
 import fs from "node:fs";
 
+// ── Subtitle timing ─────────────────────────────────────────────────────────
+// Mirrors src/server/content/subtitles.ts. The local speech engine gives one
+// duration per line, so the line's time is shared between its words by how long
+// each takes to say — syllables, plus the beat punctuation buys. Each chunk is
+// re-anchored to its line's own start and end, so the estimate cannot drift.
+const syllables = (word) => {
+  const w = word.toLowerCase().replace(/[^a-z]/g, "");
+  if (!w) return 1;
+  const groups = (w.match(/[aeiouy]+/g) ?? ["x"]).length;
+  const silentE = /[^aeiouy]e$/.test(w) && groups > 1 ? 1 : 0;
+  return Math.max(1, groups - silentE);
+};
+const pause = (w) => (/[.!?]$/.test(w) ? 1.6 : /[,;:—–]$/.test(w) ? 0.9 : 0);
+
+function planSubtitles(text, start, duration, maxWords = 4, maxChars = 26) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length || duration <= 0) return [];
+  const weights = words.map((w) => syllables(w) + pause(w));
+  const total = weights.reduce((a, b) => a + b, 0);
+
+  const timed = [];
+  let cursor = start;
+  words.forEach((word, i) => {
+    const end = i === words.length - 1 ? start + duration : cursor + (weights[i] / total) * duration;
+    timed.push({ text: word, start: cursor, end });
+    cursor = end;
+  });
+
+  const chunks = [];
+  let current = [];
+  const flush = () => {
+    if (!current.length) return;
+    chunks.push({ words: current, start: current[0].start, end: current[current.length - 1].end });
+    current = [];
+  };
+  for (const w of timed) {
+    const would = [...current, w];
+    if (current.length && (would.length > maxWords || would.map((x) => x.text).join(" ").length > maxChars)) flush();
+    current.push(w);
+    if (/[.!?]$/.test(w.text)) flush();
+  }
+  flush();
+  return chunks;
+}
+
 const W = 1080, H = 1920;
 
 // ── Meta safe zones ─────────────────────────────────────────────────────────
@@ -91,7 +136,21 @@ const audios = [
   audio("sfx-sting-cta", "assets/sfx/sting.wav", cta.start + 1.3, 1.0, L.sting, 0.8),
 ].join("\n      ");
 
-const caption = (s) => `<div class="caption" id="cap-${s.id}"><span>${esc(s.text)}</span></div>`;
+// Every chunk is rendered up front and revealed on its own window: HyperFrames
+// needs a frame to be a pure function of time, so nothing may be created or
+// destroyed while the timeline runs.
+const subtitles = scenes.flatMap((s, si) => {
+  const cue = cues[si];
+  return planSubtitles(cue.text, s.voStart, cue.duration).map((chunk, ci) => ({
+    ...chunk, id: `sub-${s.id}-${ci}`,
+    words: chunk.words.map((w, wi) => ({ ...w, id: `sub-${s.id}-${ci}-${wi}` })),
+  }));
+});
+
+const subtitleHtml = subtitles
+  .map((c) => `<div class="sub" id="${c.id}"><b>${c.words
+      .map((w) => `<span id="${w.id}">${esc(w.text)}</span>`).join(" ")}</b></div>`)
+  .join("\n      ");
 
 const html = `<!doctype html>
 <html lang="en">
@@ -118,19 +177,22 @@ const html = `<!doctype html>
     .brand .mark { display: block; width: 56px; height: 56px; border-radius: 14px; background: ${C.blue}; }
     .brand .mark::after { content: ""; position: absolute; width: 24px; height: 30px; margin: 13px 16px; border: 4px solid #fff; border-radius: 4px; }
     /* Anchored to the bottom of the safe area and growing upward, so a
-       two-line caption stays readable instead of sliding under the chrome. */
-    .caption { position: absolute; left: ${SAFE.side + 24}px; right: ${SAFE.side + 24}px;
-      bottom: ${SAFE.bottom + 40}px; font-size: 46px; font-weight: 600; line-height: 1.25; color: ${C.ink};
-      opacity: 0; }
-    /* A backing plate, not a text-shadow: these captions pass over a white
-       laptop screen mid-video, where white-on-white measured 1.5:1. The plate
-       holds contrast over any scene, and is what a Reel caption looks like
-       anyway. */
-    .caption span { display: inline; box-decoration-break: clone;
-      -webkit-box-decoration-break: clone;
-      background: rgba(6,10,20,0.82); padding: 10px 18px; border-radius: 10px;
-      box-shadow: 0 6px 28px rgba(0,0,0,0.45); }
-    .caption b { color: ${C.blueSoft}; font-weight: 600; }
+       two-line chunk stays readable instead of sliding under the chrome.
+       Centred, because a short chunk pinned left drifts around the frame. */
+    .sub { position: absolute; left: ${SAFE.side + 24}px; right: ${SAFE.side + 24}px;
+      bottom: ${SAFE.bottom + 40}px; text-align: center;
+      font-size: 62px; font-weight: 700; line-height: 1.2; letter-spacing: -0.5px;
+      color: ${C.ink}; opacity: 0; }
+    .sub b { display: inline-block; padding: 14px 26px; border-radius: 14px;
+      background: rgba(6,10,20,0.82); box-shadow: 0 6px 30px rgba(0,0,0,0.5); font-weight: 700; }
+    .sub span { display: inline-block; padding: 0 6px; }
+    /* The plate is a backing box, not a text-shadow: subtitles pass over a
+       white laptop screen mid-video, where white-on-white measured 1.5:1. It
+       wraps the whole chunk rather than each word, so the highlight does not
+       chop it into blocks. */
+    /* The spoken word, picked out. Colour only — moving or scaling the active
+       word reflows the line and makes the whole chunk jitter. */
+    .sub span.on { color: ${C.blueSoft}; }
 
     /* hook */
     .kinetic { position: absolute; left: ${SAFE.side + 24}px; right: ${SAFE.side + 24}px; top: 560px; display: flex; flex-direction: column; gap: 22px; }
@@ -273,8 +335,8 @@ const html = `<!doctype html>
       </div>
     </section>
 
-    <!-- captions (silent viewers) -->
-    ${scenes.map(caption).join("\n    ")}
+    <!-- Subtitles: most of the feed watches muted, so these carry the script. -->
+    ${subtitleHtml}
 
     ${audios}
   </div>
@@ -291,10 +353,21 @@ const html = `<!doctype html>
     tl.fromTo("#brand", { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, T.dash.start + 0.1);
     tl.to("#brand", { opacity: 0, duration: 0.3 }, T.cta.start);
 
-    // captions: each shows for its line
-    for (const id of Object.keys(T)) {
-      tl.fromTo("#cap-" + id, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, T[id].vo - 0.1);
-      tl.to("#cap-" + id, { opacity: 0, duration: 0.25 }, T[id].voEnd + 0.35);
+    // Subtitles. Each chunk pops in on its own window and is hidden again at
+    // its end; the spoken word is picked out by colour alone, because moving or
+    // scaling it would reflow the line and make the whole chunk jitter.
+    const SUBS = ${JSON.stringify(subtitles.map((c) => ({
+      id: c.id, start: +f2(c.start), end: +f2(c.end),
+      words: c.words.map((w) => ({ id: w.id, start: +f2(w.start), end: +f2(w.end) })),
+    })))};
+    for (const chunk of SUBS) {
+      tl.fromTo("#" + chunk.id, { opacity: 0, y: 18, scale: 0.97 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.14, ease: "power3.out" }, chunk.start);
+      tl.set("#" + chunk.id, { opacity: 0 }, chunk.end);
+      for (const word of chunk.words) {
+        tl.set("#" + word.id, { color: "${C.blueSoft}" }, word.start);
+        tl.set("#" + word.id, { color: "${C.ink}" }, word.end);
+      }
     }
 
     // 1 · hook — three slams, a strike-through, the question
