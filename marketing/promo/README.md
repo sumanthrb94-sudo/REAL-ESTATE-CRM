@@ -78,6 +78,22 @@ npm run check && npm run render
 | `inventory-truth` | One live grid, so nobody sells the same flat twice | ember |
 | `one-door-import` | Every list you already own, in through one screen | ink |
 
+A second set argues the differentiators one feature at a time, for a viewer
+already comparing products:
+
+| Reel | The claim | Palette |
+| --- | --- | --- |
+| `merge-not-drop` | A duplicate is two halves of one buyer, not a row to discard | amber |
+| `who-sees-what` | An agent sees their leads, not your database | slate |
+| `no-blind-import` | The preview is not an estimate, it is the import | cobalt |
+| `built-for-india` | Towers, RERA and crore are the schema, not a locale setting | ember |
+| `crm-makes-ads` | The CRM writes its own ads, from its own inventory | violet |
+
+Every claim in these was checked against the code that makes it. The boundaries
+they deliberately do not cross: no live Meta capture, no outbound messaging, no
+ad posting or spend management, no RERA filing, no payment collection, no
+e-signature, no audit log.
+
 Scene length follows the narration, so editing a `vo` line re-times the cut. The
 palette changes only the accent and the ground — the type, spacing and device
 treatment are fixed, so five reels read as a family rather than five files.

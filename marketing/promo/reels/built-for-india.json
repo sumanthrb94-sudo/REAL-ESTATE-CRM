@@ -1,0 +1,82 @@
+{
+ "id": "built-for-india",
+ "angle": "The Indian deal shape is the schema itself: towers, floors and units, Token to Registered with a milestone plan, and RERA carrying channel partners, none of it bolted on as custom fields.",
+ "palette": "ember",
+ "hook": {
+  "lines": [
+   "Custom field hell.",
+   "Consultant invoice.",
+   "Or just the schema."
+  ],
+  "strikeLine": 1,
+  "question": "Why model a tower by hand?"
+ },
+ "scenes": [
+  {
+   "id": "tower-floor-unit",
+   "shot": "inventory",
+   "vo": "Projects hold towers, towers hold floors, and floors hold real units.",
+   "focus": "the Available Units stat card",
+   "chip": {
+    "title": "Towers, floors, units",
+    "sub": "The unit is the object, not a deal"
+   },
+   "sfx": "whoosh",
+   "hotspot": "Available units"
+  },
+  {
+   "id": "token-to-registered",
+   "shot": "bookings",
+   "vo": "Token, then Agreement, then Registered, with construction milestones created at booking time.",
+   "focus": "the booking status column",
+   "chip": {
+    "title": "Token to Registered",
+    "sub": "Milestones created with the booking"
+   },
+   "sfx": "tick",
+   "hotspot": "Registered"
+  },
+  {
+   "id": "partners-first-class",
+   "shot": "channel-partners",
+   "vo": "Each partner carries a RERA id, an approval status, and a commission percent.",
+   "focus": "the RERA ID column",
+   "chip": {
+    "title": "Partners are first class",
+    "sub": "RERA id, commission, sourced leads"
+   },
+   "sfx": "pop",
+   "hotspot": "Partner Directory"
+  },
+  {
+   "id": "visit-is-the-deal",
+   "shot": "site-visits",
+   "vo": "Site visits are their own record, with a schedule and written feedback.",
+   "focus": "the Feedback column",
+   "chip": {
+    "title": "Site visits, not notes",
+    "sub": "Scheduled, confirmed, feedback captured"
+   },
+   "sfx": "chime",
+   "hotspot": "Completed"
+  },
+  {
+   "id": "lakh-and-crore",
+   "shot": "reports",
+   "vo": "Reports read in lakh and crore, because that is how the market talks.",
+   "focus": "the Booking Value column",
+   "chip": {
+    "title": "Lakh and crore, native",
+    "sub": "Values shown the way deals are quoted"
+   },
+   "sfx": "swell",
+   "hotspot": "Booking Value"
+  }
+ ],
+ "cta": {
+  "tag": "Built for how India sells homes.",
+  "eyebrow": "NO CONSULTANT REQUIRED",
+  "button": "Book a live demo",
+  "note": "EstateCRM. The schema fits the market."
+ }
+}

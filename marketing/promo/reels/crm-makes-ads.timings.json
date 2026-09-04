@@ -1,0 +1,47 @@
+{
+ "voice": "am_michael",
+ "cues": [
+  {
+   "id": "hook",
+   "text": "Why is your CRM not writing it?",
+   "file": "hook.wav",
+   "duration": 2.185
+  },
+  {
+   "id": "facts-live-here",
+   "text": "Your price, your locality, your unit types already sit inside the CRM.",
+   "file": "facts-live-here.wav",
+   "duration": 5.056
+  },
+  {
+   "id": "one-press",
+   "text": "Nothing fires on page load. One press writes the caption and headlines.",
+   "file": "one-press.wav",
+   "duration": 4.706
+  },
+  {
+   "id": "badged",
+   "text": "Rejected drafts show the reason. Good ones are badged with the model.",
+   "file": "badged.wav",
+   "duration": 4.429
+  },
+  {
+   "id": "you-post-it",
+   "text": "Campaigns are records. Nothing is sent, so you post it.",
+   "file": "you-post-it.wav",
+   "duration": 3.434
+  },
+  {
+   "id": "every-size",
+   "text": "Pick the Reel size, generate the background, then do the next project.",
+   "file": "every-size.wav",
+   "duration": 4.341
+  },
+  {
+   "id": "cta",
+   "text": "Your data already wrote the ad. Book a live demo.",
+   "file": "cta.wav",
+   "duration": 3.376
+  }
+ ]
+}

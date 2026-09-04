@@ -1,0 +1,81 @@
+{
+ "id": "no-blind-import",
+ "angle": "Other CRMs ask you to import on faith; here the mapping screen and the summary are computed and never saved, and the preview runs the very same planner the commit runs, so the counts you read are the rows you get.",
+ "palette": "cobalt",
+ "hook": {
+  "lines": [
+   "Someone else's file.",
+   "Into your live CRM.",
+   "Not until you look."
+  ],
+  "strikeLine": 1,
+  "question": "What if preview was the import?"
+ },
+ "scenes": [
+  {
+   "id": "bytes-not-names",
+   "shot": "import",
+   "vo": "EstateCRM reads the bytes of your Excel or CSV file, not its name.",
+   "focus": "the file chooser on the upload step",
+   "chip": {
+    "title": "Bytes, not extensions",
+    "sub": "A renamed spreadsheet still opens"
+   },
+   "sfx": "whoosh",
+   "hotspot": "Import leads"
+  },
+  {
+   "id": "header-match",
+   "shot": "import-mapping",
+   "vo": "Columns are matched by header text, and a Meta lead ads file is named.",
+   "focus": "the line saying this looks like a Meta lead ads export",
+   "chip": {
+    "title": "Matched by header",
+    "sub": "Meta lead ads named on screen"
+   },
+   "sfx": "click",
+   "hotspot": "Check the column mapping"
+  },
+  {
+   "id": "your-call",
+   "shot": "import-mapping",
+   "vo": "Change any guess yourself, and the numbers recompute before a single row is saved.",
+   "focus": null,
+   "chip": {
+    "title": "Every guess is yours",
+    "sub": "Remap any column, nothing saved yet"
+   },
+   "sfx": "tick"
+  },
+  {
+   "id": "same-planner",
+   "shot": "import-preview",
+   "vo": "The preview runs the same code the import runs, so these counts hold.",
+   "focus": "the row counts under What will happen",
+   "chip": {
+    "title": "Same planner, same counts",
+    "sub": "Not a sample, not an estimate"
+   },
+   "sfx": "swell",
+   "hotspot": "What will happen"
+  },
+  {
+   "id": "you-press",
+   "shot": "leads",
+   "vo": "Nothing reaches your CRM until you press the button, and then it matches.",
+   "focus": "the new leads sitting in the table",
+   "chip": {
+    "title": "You press, then it writes",
+    "sub": "The count you read is the count you get"
+   },
+   "sfx": "chime",
+   "hotspot": "Matching Leads"
+  }
+ ],
+ "cta": {
+  "tag": "The preview is the import.",
+  "eyebrow": "NOTHING SAVED UNTIL YOU SAY",
+  "button": "Try the import preview",
+  "note": "Excel or CSV. Nothing writes until you do."
+ }
+}

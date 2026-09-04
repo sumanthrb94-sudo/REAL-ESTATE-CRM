@@ -1,0 +1,82 @@
+{
+ "id": "merge-not-drop",
+ "angle": "Most CRMs answer a repeat enquiry by opening a second record or dropping the row, while EstateCRM folds both halves into one lead using fixed rules that only ever add.",
+ "palette": "amber",
+ "hook": {
+  "lines": [
+   "One buyer, two rows.",
+   "Most CRMs pick one.",
+   "We keep both."
+  ],
+  "strikeLine": 1,
+  "question": "Which half do you delete?"
+ },
+ "scenes": [
+  {
+   "id": "same-buyer",
+   "shot": "import",
+   "vo": "Upload the file as it comes, and a repeat buyer is found by phone.",
+   "focus": "the file upload field on the import screen",
+   "chip": {
+    "title": "Upload it as it comes",
+    "sub": "Matched on the last ten phone digits"
+   },
+   "sfx": "whoosh",
+   "hotspot": "Import leads"
+  },
+  {
+   "id": "columns",
+   "shot": "import-mapping",
+   "vo": "EstateCRM reads the header row and names the Meta lead ads format on screen.",
+   "focus": "the auto-filled Import as column",
+   "chip": {
+    "title": "Columns matched by name",
+    "sub": "Meta lead ads export, detected"
+   },
+   "sfx": "click",
+   "hotspot": "Check the column mapping"
+  },
+  {
+   "id": "your-call",
+   "shot": "import-preview",
+   "vo": "Combine them is the default, so the second form is kept, not dropped.",
+   "focus": "the three-way choice about people already in the CRM",
+   "chip": {
+    "title": "You choose, per import",
+    "sub": "Combine, leave alone, or add anyway"
+   },
+   "sfx": "tick",
+   "hotspot": "What will happen"
+  },
+  {
+   "id": "what-combines",
+   "shot": "import-preview",
+   "vo": "Blank fields fill, tags join, and the budget widens at both ends.",
+   "focus": "the list of leads that will be combined and what changes",
+   "chip": {
+    "title": "Budget widens both ends",
+    "sub": "Appended, unioned, widened, never lost"
+   },
+   "sfx": "pop",
+   "hotspot": "Will combine"
+  },
+  {
+   "id": "nothing-lost",
+   "shot": "leads",
+   "vo": "Nothing known is lost, and a second phone number reaches the timeline.",
+   "focus": "the unchanged owner and stage on the combined lead",
+   "chip": {
+    "title": "Owner, stage, history kept",
+    "sub": "Temperature rises, never falls"
+   },
+   "sfx": "chime",
+   "hotspot": "Matching Leads"
+  }
+ ],
+ "cta": {
+  "tag": "Two halves of one buyer, joined.",
+  "eyebrow": "NOTHING LOST, NOTHING HIDDEN",
+  "button": "See a merge preview",
+  "note": "Combine, leave alone, or add anyway."
+ }
+}

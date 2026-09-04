@@ -1,0 +1,47 @@
+{
+ "voice": "am_michael",
+ "cues": [
+  {
+   "id": "hook",
+   "text": "Who can see every lead?",
+   "file": "hook.wav",
+   "duration": 1.487
+  },
+  {
+   "id": "seven-roles",
+   "text": "Seven roles here, from admin to channel partner, one role per person.",
+   "file": "seven-roles.wav",
+   "duration": 4.51
+  },
+  {
+   "id": "route-not-sidebar",
+   "text": "The sidebar hides links, but the route itself checks the permission again.",
+   "file": "route-not-sidebar.wav",
+   "duration": 4.36
+  },
+  {
+   "id": "her-rows-only",
+   "text": "A sales agent sees the leads she owns, a manager sees her team.",
+   "file": "her-rows-only.wav",
+   "duration": 4.401
+  },
+  {
+   "id": "writes-recheck",
+   "text": "Every write checks the role again, because anyone can post to it.",
+   "file": "writes-recheck.wav",
+   "duration": 3.708
+  },
+  {
+   "id": "partners-inside",
+   "text": "Channel partners sign in beside your staff, and this screen stays closed.",
+   "file": "partners-inside.wav",
+   "duration": 4.614
+  },
+  {
+   "id": "cta",
+   "text": "They see their leads, not yours. See the permission matrix.",
+   "file": "cta.wav",
+   "duration": 3.925
+  }
+ ]
+}

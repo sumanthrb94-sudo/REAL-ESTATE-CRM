@@ -1,0 +1,82 @@
+{
+ "id": "who-sees-what",
+ "angle": "One permission matrix enforced at three layers, navigation, route and row, so an agent opens their own leads instead of your whole database.",
+ "palette": "slate",
+ "hook": {
+  "lines": [
+   "An agent resigns.",
+   "Takes the list too.",
+   "Not out of here."
+  ],
+  "strikeLine": 1,
+  "question": "Who can see every lead?"
+ },
+ "scenes": [
+  {
+   "id": "seven-roles",
+   "shot": "users",
+   "vo": "Seven roles here, from admin to channel partner, one role per person.",
+   "focus": "the Role column in the users table",
+   "chip": {
+    "title": "Seven roles, one matrix",
+    "sub": "Admin, heads, managers, agents, partners"
+   },
+   "sfx": "click",
+   "hotspot": "Users"
+  },
+  {
+   "id": "route-not-sidebar",
+   "shot": "leads",
+   "vo": "The sidebar hides links, but the route itself checks the permission again.",
+   "focus": "the sidebar navigation groups",
+   "chip": {
+    "title": "Typing the URL fails",
+    "sub": "Nav, route and row each check the role"
+   },
+   "sfx": "thud",
+   "hotspot": "SALES"
+  },
+  {
+   "id": "her-rows-only",
+   "shot": "m-leads",
+   "vo": "A sales agent sees the leads she owns, a manager sees her team.",
+   "focus": "the lead cards in the mobile list",
+   "chip": {
+    "title": "Her rows, not yours",
+    "sub": "Scope is set on the server, not the URL"
+   },
+   "sfx": "whoosh",
+   "hotspot": "Hot Leads"
+  },
+  {
+   "id": "writes-recheck",
+   "shot": "distribution",
+   "vo": "Every write checks the role again, because anyone can post to it.",
+   "focus": "the distribution rules list",
+   "chip": {
+    "title": "Writes check again",
+    "sub": "Assigning needs the assign permission"
+   },
+   "sfx": "pop",
+   "hotspot": "Source Based"
+  },
+  {
+   "id": "partners-inside",
+   "shot": "channel-partners",
+   "vo": "Channel partners sign in beside your staff, and this screen stays closed.",
+   "focus": "the partner list",
+   "chip": {
+    "title": "Brokers, on a thin role",
+    "sub": "Leads and inventory, read only"
+   },
+   "sfx": "tick",
+   "hotspot": "Partner Directory"
+  }
+ ],
+ "cta": {
+  "tag": "They see their leads, not yours.",
+  "eyebrow": "THE BUILD ENFORCES IT",
+  "button": "See the permission matrix",
+  "note": "A test fails the build if a page is open."
+ }
+}

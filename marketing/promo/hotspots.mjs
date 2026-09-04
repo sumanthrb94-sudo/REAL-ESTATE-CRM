@@ -58,6 +58,8 @@ const PAGES = [
     await page.waitForTimeout(900);
   }],
   ["my-day", "/my-day", DESK],
+  ["users", "/settings/users", DESK],
+  ["channel-partners", "/channel-partners", DESK],
   ["distribution", "/distribution", DESK],
   ["m-my-day", "/my-day", MOB],
   ["m-leads", "/leads", MOB],

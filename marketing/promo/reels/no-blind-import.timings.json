@@ -1,0 +1,47 @@
+{
+ "voice": "am_michael",
+ "cues": [
+  {
+   "id": "hook",
+   "text": "What if preview was the import?",
+   "file": "hook.wav",
+   "duration": 1.838
+  },
+  {
+   "id": "bytes-not-names",
+   "text": "EstateCRM reads the bytes of your Excel or CSV file, not its name.",
+   "file": "bytes-not-names.wav",
+   "duration": 5.514
+  },
+  {
+   "id": "header-match",
+   "text": "Columns are matched by header text, and a Meta lead ads file is named.",
+   "file": "header-match.wav",
+   "duration": 4.78
+  },
+  {
+   "id": "your-call",
+   "text": "Change any guess yourself, and the numbers recompute before a single row is saved.",
+   "file": "your-call.wav",
+   "duration": 5.294
+  },
+  {
+   "id": "same-planner",
+   "text": "The preview runs the same code the import runs, so these counts hold.",
+   "file": "same-planner.wav",
+   "duration": 4.621
+  },
+  {
+   "id": "you-press",
+   "text": "Nothing reaches your CRM until you press the button, and then it matches.",
+   "file": "you-press.wav",
+   "duration": 4.718
+  },
+  {
+   "id": "cta",
+   "text": "The preview is the import. Try the import preview.",
+   "file": "cta.wav",
+   "duration": 3.228
+  }
+ ]
+}

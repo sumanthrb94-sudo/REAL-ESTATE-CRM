@@ -1,0 +1,82 @@
+{
+ "id": "crm-makes-ads",
+ "angle": "The CRM writes its own ads: the Studio drafts the caption, the Google lines and the artwork from the project already sitting in inventory, badges every result with the model that made it, and shows the reason when a draft is thrown out.",
+ "palette": "violet",
+ "hook": {
+  "lines": [
+   "Brief the agency.",
+   "Wait a week.",
+   "Or press a button."
+  ],
+  "strikeLine": 1,
+  "question": "Why is your CRM not writing it?"
+ },
+ "scenes": [
+  {
+   "id": "facts-live-here",
+   "shot": "inventory",
+   "vo": "Your price, your locality, your unit types already sit inside the CRM.",
+   "focus": "the Available Value stat card",
+   "chip": {
+    "title": "Facts already in the CRM",
+    "sub": "Price, locality, unit types"
+   },
+   "sfx": "whoosh",
+   "hotspot": "Available Value"
+  },
+  {
+   "id": "one-press",
+   "shot": "studio",
+   "vo": "Nothing fires on page load. One press writes the caption and headlines.",
+   "focus": "the Write ad copy button",
+   "chip": {
+    "title": "Nothing on page load",
+    "sub": "It generates when you press it"
+   },
+   "sfx": "click",
+   "hotspot": "Write ad copy"
+  },
+  {
+   "id": "badged",
+   "shot": "studio",
+   "vo": "Rejected drafts show the reason. Good ones are badged with the model.",
+   "focus": "the Copy card for Agartha",
+   "chip": {
+    "title": "AI, or template",
+    "sub": "Model named, rejections explained"
+   },
+   "sfx": "tick",
+   "hotspot": "Copy — Agartha"
+  },
+  {
+   "id": "you-post-it",
+   "shot": "marketing",
+   "vo": "Campaigns are records. Nothing is sent, so you post it.",
+   "focus": "the No sends yet line",
+   "chip": {
+    "title": "Records, not auto posting",
+    "sub": "The Studio writes, you publish"
+   },
+   "sfx": "thud",
+   "hotspot": "Total Sent"
+  },
+  {
+   "id": "every-size",
+   "shot": "studio",
+   "vo": "Pick the Reel size, generate the background, then do the next project.",
+   "focus": "the 4:5 Instagram portrait option",
+   "chip": {
+    "title": "Reel and carousel sizes",
+    "sub": "Same data, every project"
+   },
+   "sfx": "swell",
+   "hotspot": "4:5 · Instagram portrait"
+  }
+ ],
+ "cta": {
+  "tag": "Your data already wrote the ad.",
+  "eyebrow": "THE CRM THAT WRITES ITS ADS",
+  "button": "Book a live demo",
+  "note": "This reel was made from these very screens."
+ }
+}

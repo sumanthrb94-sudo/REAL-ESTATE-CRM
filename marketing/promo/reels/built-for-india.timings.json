@@ -1,0 +1,47 @@
+{
+ "voice": "am_michael",
+ "cues": [
+  {
+   "id": "hook",
+   "text": "Why model a tower by hand?",
+   "file": "hook.wav",
+   "duration": 1.816
+  },
+  {
+   "id": "tower-floor-unit",
+   "text": "Projects hold towers, towers hold floors, and floors hold real units.",
+   "file": "tower-floor-unit.wav",
+   "duration": 5.359
+  },
+  {
+   "id": "token-to-registered",
+   "text": "Token, then Agreement, then Registered, with construction milestones created at booking time.",
+   "file": "token-to-registered.wav",
+   "duration": 6.152
+  },
+  {
+   "id": "partners-first-class",
+   "text": "Each partner carries a RERA id, an approval status, and a commission percent.",
+   "file": "partners-first-class.wav",
+   "duration": 5.133
+  },
+  {
+   "id": "visit-is-the-deal",
+   "text": "Site visits are their own record, with a schedule and written feedback.",
+   "file": "visit-is-the-deal.wav",
+   "duration": 4.093
+  },
+  {
+   "id": "lakh-and-crore",
+   "text": "Reports read in lakh and crore, because that is how the market talks.",
+   "file": "lakh-and-crore.wav",
+   "duration": 4.43
+  },
+  {
+   "id": "cta",
+   "text": "Built for how India sells homes. Book a live demo.",
+   "file": "cta.wav",
+   "duration": 3.577
+  }
+ ]
+}

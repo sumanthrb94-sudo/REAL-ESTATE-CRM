@@ -86,6 +86,8 @@ const PALETTES = {
   ember:  { bg: "#140d0a", bg2: "#2a1710", key: "#f97316", soft: "#fdba74", glow: "249,115,22" },
   teal:   { bg: "#04141a", bg2: "#0b2b33", key: "#14b8a6", soft: "#5eead4", glow: "20,184,166" },
   violet: { bg: "#0d0a1a", bg2: "#1e1633", key: "#8b5cf6", soft: "#c4b5fd", glow: "139,92,246" },
+  amber:  { bg: "#16100a", bg2: "#2e2010", key: "#eab308", soft: "#fde047", glow: "234,179,8" },
+  slate:  { bg: "#0a0e14", bg2: "#18222e", key: "#0ea5e9", soft: "#7dd3fc", glow: "14,165,233" },
 };
 // The hook is set to fit on one line each, not to a fixed size. The strike-
 // through is centred on the line it crosses out, so a line that wraps puts the

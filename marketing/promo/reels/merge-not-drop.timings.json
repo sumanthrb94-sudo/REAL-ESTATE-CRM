@@ -1,0 +1,47 @@
+{
+ "voice": "am_michael",
+ "cues": [
+  {
+   "id": "hook",
+   "text": "Which half do you delete?",
+   "file": "hook.wav",
+   "duration": 1.381
+  },
+  {
+   "id": "same-buyer",
+   "text": "Upload the file as it comes, and a repeat buyer is found by phone.",
+   "file": "same-buyer.wav",
+   "duration": 4.438
+  },
+  {
+   "id": "columns",
+   "text": "EstateCRM reads the header row and names the Meta lead ads format on screen.",
+   "file": "columns.wav",
+   "duration": 5.536
+  },
+  {
+   "id": "your-call",
+   "text": "Combine them is the default, so the second form is kept, not dropped.",
+   "file": "your-call.wav",
+   "duration": 4.573
+  },
+  {
+   "id": "what-combines",
+   "text": "Blank fields fill, tags join, and the budget widens at both ends.",
+   "file": "what-combines.wav",
+   "duration": 4.646
+  },
+  {
+   "id": "nothing-lost",
+   "text": "Nothing known is lost, and a second phone number reaches the timeline.",
+   "file": "nothing-lost.wav",
+   "duration": 4.384
+  },
+  {
+   "id": "cta",
+   "text": "Two halves of one buyer, joined. See a merge preview.",
+   "file": "cta.wav",
+   "duration": 3.396
+  }
+ ]
+}

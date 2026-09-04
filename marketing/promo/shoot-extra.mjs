@@ -16,6 +16,8 @@ for (const [name, route, viewport, dsf, mobile] of [
   ["my-day", "/my-day", { width: 1440, height: 900 }, 2, false],
   ["distribution", "/distribution", { width: 1440, height: 900 }, 2, false],
   ["m-my-day", "/my-day", { width: 390, height: 844 }, 3, true],
+  ["users", "/settings/users", { width: 1440, height: 900 }, 2, false],
+  ["channel-partners", "/channel-partners", { width: 1440, height: 900 }, 2, false],
 ]) {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: dsf, colorScheme: "light", isMobile: mobile });
   await ctx.addCookies(session.cookies.map(({ name: n, value, path }) => ({ name: n, value, domain: "localhost", path: path ?? "/" })));
